@@ -59,3 +59,6 @@ target/
 # Vim buffers and swaps
 *~
 *.swp
+
+# Ignore coverage reports
+cover/
