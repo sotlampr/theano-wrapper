@@ -5,12 +5,42 @@ from theano import tensor as T
 
 
 class BaseLayer:
-    def __init__(self, n_in, n_out, *args, **kwargs):
+    """ Base Class for all layers
+    Attributes:
+         X: (theano matrix) Theano symbolic input
+         y: (theano vector) Theano symbolic output (optional)
+         W: (theano arr(n_in, n_out)) Weights matrix
+         b: (theano arr(n_out,)) Bias vector
+         params: list(W, b) List containing the layer parameters W and b
+    """
+    def __init__(self, n_in, n_out, y=None):
+        """Arguements:
+            n_in: (int) Number of input nodes
+            n_out: (int) Number of output nodes
+            y: (str, 'int' or 'float') Type of prediction vector (optional)
+        """
         self.X = T.matrix('X')
-        self.__init_weights_bias(n_in, n_out)
 
+        if y is None:
+            # This is a hidden layer, no output vector
+            pass
+        elif isinstance(y, str):
+            if y == 'int':
+                self.y = T.ivector('y')
+            elif y == 'float':
+                self.y = T.fvector('y')
+            else:
+                # Handle the exception
+                raise ValueError
 
-    def __init_weights_bias(self, n_in, n_out):
+        _weights, _bias = self.__init_weights_bias(n_in, n_out)
+
+        self.W = theano.shared(_weights, name='W')
+        self.b = theano.shared(_bias, name='b')
+        self.params = [self.W, self.b]
+
+    @staticmethod
+    def __init_weights_bias(n_in, n_out):
         # Weights and bias initialization
         if n_out == 1:
             _weights = np.zeros((n_in), dtype=theano.config.floatX)
@@ -19,6 +49,23 @@ class BaseLayer:
             _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
             _bias = np.zeros(n_out,)
 
-        self.W = theano.shared(_weights, name='W')
-        self.b = theano.shared(_bias, name='b')
-        self.params = [self.W, self.b]
+        return _weights, _bias
+
+
+class LinearRegression(BaseLayer):
+    """ Simple Linear Regression.
+    Attributes:
+        X: theano input (from BaseLayer)
+        y: theano output (from BaseLayer)
+        W: theano weights (from BaseLayer)
+        b: theano bias (from BaseLayer)
+
+        predict: (theano expression) Predict target value for input X
+        cost: (theano expression) Mean squared error loss function
+    """
+    def __init__(self, n_in, n_out):
+        # Initialize Base:ayer
+        super().__init__(n_in, n_out, 'float')
+        self.predict = T.dot(self.X, self.W) + self.b
+        self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
+

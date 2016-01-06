@@ -4,10 +4,10 @@ import sys
 import numpy as np
 import theano
 
-from theano_wrapper.layers import BaseLayer
+from theano_wrapper.layers import BaseLayer, LinearRegression
 
 
-class TestLayer(unittest.TestCase):
+class TestLayers(unittest.TestCase):
     """ Tests for layer.py module, which includes various types of layers
     for theano-wrapper
     """
@@ -57,3 +57,25 @@ class TestLayer(unittest.TestCase):
     def test_base_layer_bias_shape_single_output(self):
         base = BaseLayer(100, 1)
         self.assertEqual(base.b.get_value().shape, ())
+
+    def test_base_layer_no_output(self):
+        base = BaseLayer(100, 10)
+        self.assertFalse(hasattr(base, 'y'))
+
+    def test_base_layer_int_output(self):
+        base = BaseLayer(100, 10, y='int')
+        self.assertTrue(hasattr(base, 'y'))
+        self.assertTrue(hasattr(base.y, 'dtype'))
+        self.assertEqual(base.y.dtype, 'int32')
+
+    def test_base_layer_float_output(self):
+        base = BaseLayer(100, 10, y='float')
+        self.assertTrue(hasattr(base, 'y'))
+        self.assertTrue(hasattr(base.y, 'dtype'))
+        self.assertEqual(base.y.dtype, 'float32')
+
+    def test_linear_regression_has_params(self):
+        lrg = LinearRegression(100, 10)
+        self.assertTrue(hasattr(lrg, 'params'))
+        self.assertIsNotNone(lrg.params)
+
