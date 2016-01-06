@@ -42,6 +42,18 @@ class TestLayer(unittest.TestCase):
         base = BaseLayer(100, 10)
         self.assertIsInstance(base.X, theano.tensor.TensorVariable)
 
-    def test_base_layer_given_weights(self):
-        pass
+    def test_base_layer_weights_shape(self):
+        base = BaseLayer(100, 10)
+        self.assertEqual(base.W.get_value().shape, (100, 10))
 
+    def test_base_layer_bias_shape(self):
+        base = BaseLayer(100, 10)
+        self.assertEqual(base.b.get_value().shape, (10,))
+
+    def test_base_layer_weights_shape_single_output(self):
+        base = BaseLayer(100, 1)
+        self.assertEqual(base.W.get_value().shape, (100,))
+
+    def test_base_layer_bias_shape_single_output(self):
+        base = BaseLayer(100, 1)
+        self.assertEqual(base.b.get_value().shape, ())
