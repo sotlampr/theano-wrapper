@@ -15,11 +15,39 @@ and implement the appropriate classes and functions in Python 3.
 
 ## Installation
 
-TODO
+Setup your virtual environment as you like, navigate to a temp directory and execute:
+
+    git clone https://github.com/sotlampr/theano-wrapper
+    cd theano-wrapper
+    pip install requirements.txt
+    pip install -e ./
+
 
 ## Usage
 
-TODO
+For a demo, open a python interpreter and type:
+
+    >>> from theano_wrapper.demo import demo
+    >>> demo()
+
+## What is included
+
+* Regression estimators
+    * Linear Regression
+
+* Classification estimators
+    * Logistic Regression
+
+* Training Classes
+    * Simple epoch-based gradient descent training
+
+* \> 95% testing coverage
+
+## What is not included
+* More Estimators [coming soon]
+* Documentation
+* Error handling
+* Testing for extreme cases
 
 ## Contributing
 
