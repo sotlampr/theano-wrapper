@@ -79,9 +79,28 @@ class TrainerBase(RandomBase):
 # class.
 class EpochTrainer(TrainerBase):
     """ Simple epoch-based trainer using Gradient Descent with patience.
+    Arguements:
+        clf: The estimator to train
+        alpha: (float) learning rate
+        max_iter: (int) max_iterations to go through
+        patience: (int) look at least that many samples
+        p_inc: (float) how many more samples to fit after each improvement
+        imp_thresh: (float) the limit of what to consider improvement
+        random: (int or random state generator) from TrainerBase
+        verbose: (int) from TrainerBase
+    Attributes:
+        gradients: (theano symbolic function) The gradient for each parameter
+        updates: (theano symbolic function) Compute update values
+    Methods:
+        fit(X, y): X: (arr(n_samples, n_features))
+                   y: (arr(n_samples, n_features))
+                   Train estimator using input samples
+                   This implementation will automatically split the input
+                   into an 80% training and an 20% validation set
+        predict(X): Return estimator prediction for input X
     """
     def __init__(self, clf, alpha=0.01, max_iter=10000, patience=5000,
-                 p_inc=2, imp_thresh=0.995, **kwargs):
+                 p_inc=2.0, imp_thresh=0.995, **kwargs):
 
         super().__init__(clf, **kwargs)
 
@@ -152,4 +171,5 @@ class EpochTrainer(TrainerBase):
         else:
             # handle the exception
             raise AttributeError("Classifier hasn't been fitted yet")
+
 # pylint: enable=invalid-name
