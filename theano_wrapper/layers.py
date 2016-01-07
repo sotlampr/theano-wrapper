@@ -69,3 +69,35 @@ class LinearRegression(BaseLayer):
         self.predict = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
 
+
+class LogisticRegression(BaseLayer):
+    """ Multi-class Logistic Regression.
+    Attributes:
+        X: theano input (from BaseLayer)
+        y: theano output (from BaseLayer)
+        W: theano weights (from BaseLayer)
+        b: theano bias (from BaseLayer)
+
+        predict: (theano expression) Return the most probable class
+        cost: (theano expression) Negative log-likelihood
+        probas: (theano expression) Calculate probabilities for input X
+        errors: Number of wrongly predicted samples
+
+    """
+    def __init__(self, n_in, n_out):
+        """ Parameters:
+            n_in: (int) Number of input nodes.
+            n_out: (int) Number of output nodes.
+        """
+        # Initialize BaseLayer
+        super(LogisticRegression, self).__init__(n_in, n_out, 'int')
+        # symbolic expression for computing the matrix of probabilities
+        self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
+
+        # symbolic expression for returning the most probable class
+        self.predict = T.argmax(self.probas, axis=1)
+
+        self.cost = -T.mean(
+            T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
+
+        self.errors = T.mean(T.neq(self.predict, self.y))

@@ -5,7 +5,8 @@ import numpy as np
 import theano
 
 from tests.helpers import SimpleTrainer
-from theano_wrapper.layers import BaseLayer, LinearRegression
+from theano_wrapper.layers import (BaseLayer,
+                                   LinearRegression, LogisticRegression)
 
 
 class TestBaseLayer(unittest.TestCase):
@@ -83,6 +84,14 @@ class EstimatorTest:
         self.assertTrue(hasattr(clf, 'params'))
         self.assertIsNotNone(clf.params)
 
+    def test_estimator_has_predict(self):
+        clf = self.estimator(*self.l_shape)
+        self.assertIsInstance(clf.predict, theano.tensor.TensorVariable)
+
+    def test_estimator_has_cost(self):
+        clf = self.estimator(*self.l_shape)
+        self.assertIsInstance(clf.cost, theano.tensor.TensorVariable)
+
     def test_estimator_fit(self):
         trn = SimpleTrainer(self.estimator(*self.l_shape))
         try:
@@ -103,3 +112,7 @@ class RegressionTest(EstimatorTest):
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
     estimator = LinearRegression
+
+
+class TestLogisticRegression(unittest.TestCase, ClassificationTest):
+    estimator = LogisticRegression
