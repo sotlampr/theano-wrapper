@@ -1,3 +1,7 @@
+""" Various trainers for machine learning applications.
+Classes:
+    EpochTrainer: A simple epoch-based trainer
+"""
 import sys
 
 import numpy as np
@@ -7,6 +11,13 @@ from theano import tensor as T
 from theano_wrapper.common import RandomBase
 
 
+# pylint: disable=invalid-name
+# Names like X,y, X_train, y_train etc. are common in machine learning
+# tasks. For better readability and comprehension, disable pylint on
+# invalid names.
+
+# pylint: disable=too-few-public-methods
+# This is a base class to be inherited from
 class TrainerBase(RandomBase):
     """ Base class for trainers.
     Attributes:
@@ -59,9 +70,13 @@ class TrainerBase(RandomBase):
         y_test = theano.shared(np.asarray(y[test]), borrow=True)
 
         return [(X_train, y_train), (X_test, y_test)]
+# pylint: enable=too-few-public-methods
 
 
-
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-arguments
+# It is inevitable to have that many arguements and parameters for a training
+# class.
 class EpochTrainer(TrainerBase):
     """ Simple epoch-based trainer using Gradient Descent with patience.
     """
@@ -81,7 +96,13 @@ class EpochTrainer(TrainerBase):
         self.updates = [(p, p - self.alpha * g)
                         for p, g in zip(self.clf.params, self.gradients)]
 
+        self.train_model = None
+        self.val_model = None
+        self.predict_model = None
+
     def fit(self, X, y):
+        """ Split the input into train and validation set and
+        run gradient-descent to find optimal model parameters """
         train_set, val_set = self._split_Xy_to_shared(X, y)
         self._init_models(train_set, val_set)
         val_freq = self.patience/3
@@ -125,10 +146,10 @@ class EpochTrainer(TrainerBase):
                                              outputs=self.clf.predict)
 
     def predict(self, X):
+        """ Predict y given X """
         if hasattr(self, 'predict_model'):
             return self.predict_model(X)
         else:
             # handle the exception
             raise AttributeError("Classifier hasn't been fitted yet")
-
-
+# pylint: enable=invalid-name

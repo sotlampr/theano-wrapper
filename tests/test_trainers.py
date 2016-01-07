@@ -15,7 +15,7 @@ class TestBase(unittest.TestCase):
     """
     def test_trainer_base_initialization(self):
         try:
-            trb = TrainerBase(SimpleClf())
+            TrainerBase(SimpleClf())
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
@@ -58,24 +58,23 @@ class BaseTrainerTest(unittest.TestCase):
             raise unittest.SkipTest("Skip BaseTest tests, it's a base class")
         super().setUpClass()
         cls.X = np.random.sample((500, 100)).astype(
-                theano.config.floatX)
-        cls.y = np.random.randint(0,9, (500,)).astype(np.int32)
+            theano.config.floatX)
+        cls.y = np.random.randint(0, 9, (500,)).astype(np.int32)
         cls.X_test = np.random.random_sample((100, 100)).astype(
-                theano.config.floatX)
+            theano.config.floatX)
 
     def test_trainer_initialization(self):
         try:
             etrain = self.trainer(SimpleClf())
         except Exception as e:
-           self.fail("Class initialization failed: %s" % str(e))
+            self.fail("Class initialization failed: %s" % str(e))
 
     def test_trainer_fit_default(self):
         etrain = self.trainer(SimpleClf())
         try:
             etrain.fit(self.X, self.y)
         except Exception as e:
-           self.fail("Training failed: %s" % str(e))
-
+            self.fail("Training failed: %s" % str(e))
 
     def test_trainer_fit_converge(self):
         etrain = self.trainer(SimpleClf(), patience=100, max_iter=1000,
@@ -109,7 +108,6 @@ class BaseTrainerTest(unittest.TestCase):
             self.assertIn(targ, y_values,
                           msg="Output contains value non-existent in "
                               "training set")
-
 
 
 class TestEpochTrainer(BaseTrainerTest):

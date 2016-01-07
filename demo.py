@@ -5,6 +5,10 @@ Available demos:
     Regression:
         1: Epoch-based Linear Regression on the boston housing dataset.
 """
+# Names like X,y, X_train, y_train etc. are common in machine learning
+# tasks. For better readability and comprehension, disable pylint on
+# invalid names.
+# pylint: disable=invalid-name
 import time
 import sys
 
@@ -51,43 +55,91 @@ def load_iris_data():
         iris.target.astype(np.int32), test_size=0.25,
         random_state=RANDOM_STATE), iris.target_names
 
+
 # DEMOS
 def demo(choice=None):
+    """ Interactive Demo.
+    Usage:
+        demo(), and follow on-screen instructions
+        OR
+        demo(arg), where arg is the desired demo in the form "<c,r><0-9>"
+                   and the first letter representing the task
+                   (r for regression, c for classification) and the last
+                   integer the n-th example.
+                   ex. demo('c2')
+    """
     if not choice:
         print("Hello, please make a demo choice:")
         while True:
-            print("\t\t\t[r] for Regression, [c] for Classificaton, [q] for quit")
+            print("\t\t\t[r] for Regression, [c] for Classificaton, "
+                  "[q] for quit")
             choice = input().lower()
             if choice == 'q':
                 break
-            elif choice == 'r':
-                regression_demos()
-            elif choice == 'c':
-                classification_demos()
+            elif choice in ('c', 'r'):
+                run_demo(choice)
             elif choice == '':
                 print("\rPlease make a choice.")
             else:
                 print("\rInvalid choice.")
+    else:
+        if isinstance(choice, str):
+            if len(choice) == 2 and choice[0] in ('c', 'r'):
+                try:
+                    int(choice[1])
+                    run_demo(choice[0], choice[1])
+                except ValueError:
+                    pass
+
+
+def run_demo(task, example=None):
+    """ Run a given demo interactive session or a specific example.
+    Arguements:
+        task: (str) 'c' or 'r' for Classification or Regression
+        example: (str) number of the example to run
+    """
+    if task == 'r':
+        regression_demos(example)
+    elif task == 'c':
+        classification_demos(example)
+    else:
+        return 1
+    return 0
 
 
 # Classification
-def classification_demos(demo=None):
-    if not demo:
+def classification_demos(example=None):
+    """ Run a classification demos interactive session or a specific example.
+    Arguements:
+        example: (str) number of example to run. if None, run the interactive
+                       session
+    """
+    def run_example(ex):
+        """ Run an examples. Any addition examples should be added here """
+        if ex == '1':
+            epoch_logreg()
+
+    if example:
+        run_example(example)
+
+    else:
         while True:
-            print("\t\t\tEnter a choice, [p] for a list of available demos, or [b] "
+            print("\t\t\tEnter a choice, [p] for a list of available "
+                  "demos, or [b] "
                   "to go back.")
             choice = input().lower()
             if choice == 'b':
                 return
             elif choice == 'p':
                 print_classification()
-            elif choice == '1':
-                epoch_logreg()
+            elif choice in ['1']:
+                run_example(choice)
             else:
                 print("Invalid choice.")
 
 
 def print_classification():
+    """ Print available classification demos """
     print("\nAvailable Classification demos:")
     print(HASH_BAR)
     print("==> 1:")
@@ -96,6 +148,7 @@ def print_classification():
 
 
 def epoch_logreg():
+    """ Epoch-based Logistic Regression on the iris dataset """
     print(EQ_BAR)
     print("Classification demo using Logistic Regression and an "
           "epoch-based trainer on the Iris dataset.")
@@ -105,33 +158,47 @@ def epoch_logreg():
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
     clf = LogisticRegression(n_in, n_out)
-    trainer = EpochTrainer(clf, alpha=0.004, patience=12000, max_iter= 200000,
+    trainer = EpochTrainer(clf, alpha=0.004, patience=12000, max_iter=200000,
                            imp_thresh=0.97, random=RANDOM_STATE, verbose=10)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
-    print("\n"+classification_report(y_test, y_pred, target_names=target_names))
+    print("\n"+classification_report(y_test, y_pred,
+                                     target_names=target_names))
     print("Took {:.1f} seconds\n".format(time.time()-begin))
 
 
 # Regression
-def regression_demos(demo=None):
-    if not demo:
+def regression_demos(example=None):
+    """ Run a classification demos interactive session or a specific example.
+    Arguements:
+        example: (str) number of example to run. if None, run the interactive
+                       session
+    """
+    def run_example(ex):
+        """ Run an example. Any additional examples should be added here. """
+        if ex == '1':
+            epoch_linear()
+
+    if example:
+        run_example(example)
+    else:
         while True:
-            print("\t\t\tEnter a choice, [p] for a list of available demos, or [b] "
-                  "to go back.")
+            print("\t\t\tEnter a choice, [p] for a list of available demos, "
+                  "or [b] to go back.")
             choice = input().lower()
             if choice == 'b':
                 return
             elif choice == 'p':
                 print_regression()
-            elif choice == '1':
-                epoch_linear()
+            elif choice in ['1']:
+                run_example(choice)
             else:
                 print("Invalid choice.")
 
 
 def print_regression():
+    """ Print available regression demos """
     print("\nAvailable Regression demos:")
     print(HASH_BAR)
     print("==> 1:")
@@ -141,6 +208,7 @@ def print_regression():
 
 
 def epoch_linear():
+    """ Epoch-based Linear Regression on the Boston housing dataset. """
     print(EQ_BAR)
     print("Regression demo using Linear Regression and an "
           "epoch-based trainer on the Boston Housing dataset.")
@@ -148,7 +216,7 @@ def epoch_linear():
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
     clf = LinearRegression(n_in, 1)
-    trainer = EpochTrainer(clf, alpha=0.01, patience=50000, max_iter= 100000,
+    trainer = EpochTrainer(clf, alpha=0.01, patience=50000, max_iter=100000,
                            imp_thresh=0.999, random=RANDOM_STATE, verbose=10)
     begin = time.time()
     trainer.fit(X_train, y_train)

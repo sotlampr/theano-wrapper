@@ -1,3 +1,4 @@
+""" Helper classes and functions for testing theano-wrapper """
 import numpy as np
 import theano
 from theano import tensor as T
@@ -18,7 +19,7 @@ class SimpleClf:
         errors: Number of wrongly predicted samples
 
     """
-    def __init__(self, n_in=100, n_out=10, **kwargs):
+    def __init__(self, n_in=100, n_out=10):
         self.X = T.matrix('X')
         self.y = T.ivector('y')
         _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
@@ -55,5 +56,5 @@ class SimpleTrainer:
     def fit(self, X, y):
         train_model = theano.function(inputs=[self.X, self.y],
                                       updates=self.updates)
-        for i in range(30):
+        for _ in range(30):
             train_model(X, y)

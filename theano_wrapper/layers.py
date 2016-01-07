@@ -1,9 +1,22 @@
-""" Various layers for machine learning applications """
+""" Various layers for machine learning applications
+Classes:
+    LinearRegression: simple linear regression
+    LogisticRegression: simple logistic regression
+"""
 import numpy as np
+
 import theano
 from theano import tensor as T
 
 
+# pylint: disable=invalid-name
+# Names like X,y, X_train, y_train etc. are common in machine learning
+# tasks. For better readability and comprehension, disable pylint on
+# invalid names.
+
+# pylint: disable=too-few-public-methods
+# Theano uses internal symbolic functions, it's ok for these classes
+# to have too few public methods
 class BaseLayer:
     """ Base Class for all layers
     Attributes:
@@ -101,3 +114,5 @@ class LogisticRegression(BaseLayer):
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
         self.errors = T.mean(T.neq(self.predict, self.y))
+# pylint: enable=invalid-name
+# pylint: enable=too-few-public-methods

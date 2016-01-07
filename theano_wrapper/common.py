@@ -6,6 +6,8 @@ Classes
 import numpy as np
 
 
+# pylint: disable=too-few-public-methods
+# This is a base class to be inherited from
 class RandomBase:
     """ A Base class providing a random state generator.
     Arguments
@@ -36,3 +38,4 @@ class RandomBase:
             else:
                 # handle the exception
                 raise TypeError
+# pylint: enable=too-few-public-methods

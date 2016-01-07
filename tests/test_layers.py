@@ -1,12 +1,11 @@
 import unittest
-import sys
 
 import numpy as np
 import theano
 
 from tests.helpers import SimpleTrainer
 from theano_wrapper.layers import (BaseLayer,
-                     LinearRegression, LogisticRegression)
+                                   LinearRegression, LogisticRegression)
 
 
 class TestBaseLayer(unittest.TestCase):
@@ -27,7 +26,7 @@ class TestBaseLayer(unittest.TestCase):
         # Test if BaseLayer initializes as expected when given no
         # extra arguements
         try:
-            base = BaseLayer(100, 10)
+            BaseLayer(100, 10)
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
@@ -79,6 +78,7 @@ class TestBaseLayer(unittest.TestCase):
 
 class EstimatorTest:
     X = np.random.standard_normal((500, 100)).astype(np.float32)
+
     def test_estimator_has_params(self):
         clf = self.estimator(*self.l_shape)
         self.assertTrue(hasattr(clf, 'params'))
@@ -107,7 +107,7 @@ class ClassificationTest(EstimatorTest):
 
 class RegressionTest(EstimatorTest):
     l_shape = (100, 1)
-    y= np.random.random((500,)).astype(np.float32)
+    y = np.random.random((500,)).astype(np.float32)
 
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
