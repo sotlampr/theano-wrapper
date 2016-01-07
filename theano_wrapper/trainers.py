@@ -70,15 +70,14 @@ class TrainerBase(RandomBase):
         y_test = theano.shared(np.asarray(y[test]), borrow=True)
 
         return [(X_train, y_train), (X_test, y_test)]
-# pylint: enable=too-few-public-methods
 
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
 # It is inevitable to have that many arguements and parameters for a training
 # class.
-class EpochTrainer(TrainerBase):
-    """ Simple epoch-based trainer using Gradient Descent with patience.
+class GradientDescentBase(TrainerBase):
+    """ Base for gradient descent trainers with patience
     Arguements:
         clf: The estimator to train
         alpha: (float) learning rate
@@ -118,6 +117,53 @@ class EpochTrainer(TrainerBase):
         self.train_model = None
         self.val_model = None
         self.predict_model = None
+
+    def fit(self, X, y):
+        """ Children class should implement a fit function
+        input: X: arr(n_samples, n_features), y: arr(n_samples,)
+        output: None, train the model
+        """
+        pass
+
+    def _init_models(self, train_set, val_set):
+        pass
+
+    def predict(self, X):
+        """ Predict y given X """
+        if hasattr(self, 'predict_model'):
+            return self.predict_model(X)   # pylint: disable=not-callable
+        else:
+            # handle the exception
+            raise AttributeError("Classifier hasn't been fitted yet")
+# pylint: enable=too-few-public-methods
+# pylint: enable=too-many-arguments
+
+
+class EpochTrainer(GradientDescentBase):
+    """ Simple epoch-based trainer using Gradient Descent with patience.
+    Arguements:
+        clf: The estimator to train
+        alpha: (float) learning rate
+        max_iter: (int) max_iterations to go through
+        patience: (int) look at least that many samples
+        p_inc: (float) how many more samples to fit after each improvement
+        imp_thresh: (float) the limit of what to consider improvement
+        random: (int or random state generator) from TrainerBase
+        verbose: (int) from TrainerBase
+    Attributes:
+        gradients: (theano symbolic function) The gradient for each parameter
+        updates: (theano symbolic function) Compute update values
+    Methods:
+        fit(X, y): X: (arr(n_samples, n_features))
+                   y: (arr(n_samples, n_features))
+                   Train estimator using input samples
+                   This implementation will automatically split the input
+                   into an 80% training and an 20% validation set
+        predict(X): Return estimator prediction for input X
+    """
+    def __init__(self, clf, *args, **kwargs):
+
+        super().__init__(clf, *args, **kwargs)
 
     def fit(self, X, y):
         """ Split the input into train and validation set and
@@ -163,13 +209,4 @@ class EpochTrainer(TrainerBase):
 
         self.predict_model = theano.function(inputs=[self.X],
                                              outputs=self.clf.predict)
-
-    def predict(self, X):
-        """ Predict y given X """
-        if hasattr(self, 'predict_model'):
-            return self.predict_model(X)
-        else:
-            # handle the exception
-            raise AttributeError("Classifier hasn't been fitted yet")
-
 # pylint: enable=invalid-name
