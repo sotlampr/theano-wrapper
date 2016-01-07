@@ -4,10 +4,11 @@ import sys
 import numpy as np
 import theano
 
+from tests.helpers import SimpleTrainer
 from theano_wrapper.layers import BaseLayer, LinearRegression
 
 
-class TestLayers(unittest.TestCase):
+class TestBaseLayer(unittest.TestCase):
     """ Tests for layer.py module, which includes various types of layers
     for theano-wrapper
     """
@@ -74,8 +75,31 @@ class TestLayers(unittest.TestCase):
         self.assertTrue(hasattr(base.y, 'dtype'))
         self.assertEqual(base.y.dtype, 'float32')
 
-    def test_linear_regression_has_params(self):
-        lrg = LinearRegression(100, 10)
-        self.assertTrue(hasattr(lrg, 'params'))
-        self.assertIsNotNone(lrg.params)
 
+class EstimatorTest:
+    X = np.random.standard_normal((500, 100)).astype(np.float32)
+    def test_estimator_has_params(self):
+        clf = self.estimator(*self.l_shape)
+        self.assertTrue(hasattr(clf, 'params'))
+        self.assertIsNotNone(clf.params)
+
+    def test_estimator_fit(self):
+        trn = SimpleTrainer(self.estimator(*self.l_shape))
+        try:
+            trn.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+
+class ClassificationTest(EstimatorTest):
+    l_shape = (100, 10)
+    y = np.random.randint(0, 9, (500,)).astype(np.int32)
+
+
+class RegressionTest(EstimatorTest):
+    l_shape = (100, 1)
+    y= np.random.random((500,)).astype(np.float32)
+
+
+class TestLinearRegression(unittest.TestCase, RegressionTest):
+    estimator = LinearRegression

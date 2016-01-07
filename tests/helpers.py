@@ -3,7 +3,7 @@ import theano
 from theano import tensor as T
 
 
-class DummyClf:
+class SimpleClf:
     """ Multi-class Logistic Regression.
     Attributes:
         X: theano input (from BaseLayer)
@@ -40,3 +40,20 @@ class DummyClf:
         self.errors = T.mean(T.neq(self.predict, self.y))
 
 
+class SimpleTrainer:
+    """ Simple Trainer. Train a network for 30 epochs """
+    def __init__(self, clf):
+        self.clf = clf
+        self.X = clf.X
+        self.y = clf.y
+        self.cost = clf.cost
+
+        self.grads = [T.grad(self.cost, p) for p in self.clf.params]
+        self.updates = [(p, p - 0.001 * g)
+                        for p, g in zip(self.clf.params, self.grads)]
+
+    def fit(self, X, y):
+        train_model = theano.function(inputs=[self.X, self.y],
+                                      updates=self.updates)
+        for i in range(30):
+            train_model(X, y)
