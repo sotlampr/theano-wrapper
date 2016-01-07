@@ -3,6 +3,7 @@ from io import StringIO
 import unittest
 
 import numpy as np
+import theano
 
 from theano_wrapper.trainers import TrainerBase, EpochTrainer
 from tests.helpers import SimpleClf
@@ -49,7 +50,19 @@ class TestBase(unittest.TestCase):
         self.assertEqual(test_set[1].get_value().shape, (400, ))
 
 
-class BaseTrainerTest:
+class BaseTrainerTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if cls is BaseTrainerTest:
+            raise unittest.SkipTest("Skip BaseTest tests, it's a base class")
+        super().setUpClass()
+        cls.X = np.random.sample((500, 100)).astype(
+                theano.config.floatX)
+        cls.y = np.random.randint(0,9, (500,)).astype(np.int32)
+        cls.X_test = np.random.random_sample((100, 100)).astype(
+                theano.config.floatX)
+
     def test_trainer_initialization(self):
         try:
             etrain = self.trainer(SimpleClf())
@@ -57,50 +70,41 @@ class BaseTrainerTest:
            self.fail("Class initialization failed: %s" % str(e))
 
     def test_trainer_fit_default(self):
-        X = np.random.random_sample((500, 100))
-        y = np.random.randint(0, 9, (500,)).astype(np.int32)
         etrain = self.trainer(SimpleClf())
         try:
-            etrain.fit(X, y)
+            etrain.fit(self.X, self.y)
         except Exception as e:
            self.fail("Training failed: %s" % str(e))
 
 
     def test_trainer_fit_converge(self):
-        X = np.random.random_sample((500, 100))
-        y = np.random.randint(0, 9, (500,)).astype(np.int32)
         etrain = self.trainer(SimpleClf(), patience=100, max_iter=1000,
                               verbose=.1)
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
-        etrain.fit(X, y)
+        etrain.fit(self.X, self.y)
         output = out.getvalue().strip()
         sys.stdout = saved_stdout
         self.assertIn('converge', output.lower())
 
     def test_trainer_fit_reach_max(self):
-        X = np.random.random_sample((500, 100))
-        y = np.random.randint(0, 9, (500,)).astype(np.int32)
         etrain = self.trainer(SimpleClf(), patience=1000, max_iter=100,
                               verbose=.1)
         saved_stdout = sys.stdout
         out = StringIO()
         sys.stdout = out
-        etrain.fit(X, y)
+        etrain.fit(self.X, self.y)
         output = out.getvalue().strip()
         sys.stdout = saved_stdout
         self.assertIn('maximum', output.lower())
 
     def test_trainer_predict(self):
-        X = np.random.random_sample((500, 100))
-        y = np.random.randint(0, 9, (500,)).astype(np.int32)
-        etrain = self.trainer(SimpleClf(), max_iter=100)
-        etrain.fit(X, y)
-        X_test = np.random.random_sample((100, 100))
-        y_pred = etrain.predict(X_test)
+        etrain = self.trainer(SimpleClf(), patience=1000, max_iter=100)
+        etrain.fit(self.X, self.y)
+        y_pred = etrain.predict(self.X_test)
         self.assertEquals(y_pred.shape, (100,))
-        y_values = np.unique(y)
+        y_values = np.unique(self.y)
         for targ in np.unique(y_pred):
             self.assertIn(targ, y_values,
                           msg="Output contains value non-existent in "
@@ -108,5 +112,5 @@ class BaseTrainerTest:
 
 
 
-class TestEpochTrainer(unittest.TestCase, BaseTrainerTest):
+class TestEpochTrainer(BaseTrainerTest):
     trainer = EpochTrainer

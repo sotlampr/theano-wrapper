@@ -6,7 +6,7 @@ import theano
 
 from tests.helpers import SimpleTrainer
 from theano_wrapper.layers import (BaseLayer,
-                                   LinearRegression, LogisticRegression)
+                     LinearRegression, LogisticRegression)
 
 
 class TestBaseLayer(unittest.TestCase):
