@@ -8,7 +8,9 @@ import numpy as np
 import theano
 from theano import tensor as T
 
+from theano_wrapper.common import RandomBase
 
+# BASE CLASSES ##############################################################
 # pylint: disable=invalid-name
 # Names like X,y, X_train, y_train etc. are common in machine learning
 # tasks. For better readability and comprehension, disable pylint on
@@ -26,7 +28,7 @@ class BaseLayer:
          b: (theano arr(n_out,)) Bias vector
          params: list(W, b) List containing the layer parameters W and b
     """
-    def __init__(self, n_in, n_out, y=None):
+    def __init__(self, n_in, n_out, y=None, weights=None):
         """Arguements:
             n_in: (int) Number of input nodes
             n_out: (int) Number of output nodes
@@ -46,25 +48,64 @@ class BaseLayer:
                 # Handle the exception
                 raise ValueError
 
-        _weights, _bias = self.__init_weights_bias(n_in, n_out)
+        _weights, _bias = self.__init_weights_bias(weights, n_in, n_out)
 
         self.W = theano.shared(_weights, name='W')
         self.b = theano.shared(_bias, name='b')
         self.params = [self.W, self.b]
 
     @staticmethod
-    def __init_weights_bias(n_in, n_out):
+    def __init_weights_bias(weights, n_in, n_out):
         # Weights and bias initialization
-        if n_out == 1:
-            _weights = np.zeros((n_in), dtype=theano.config.floatX)
-            _bias = 0.
+        if weights is None:
+            if n_out == 1:
+                _weights = np.zeros((n_in), dtype=theano.config.floatX)
+            else:
+                _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
         else:
-            _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
-            _bias = np.zeros(n_out,)
+            _weights = weights
+
+        _bias = 0. if n_out == 1 else np.zeros(n_out,)
 
         return _weights, _bias
 
 
+class HiddenLayer(RandomBase, BaseLayer):
+    """ A Hidden layer
+    Attributes:
+        X: theano input (from BaseLayer)
+        W: theano weights (from BaseLayer)
+        b: theano bias (from BaseLayer)
+        params: list(W, b) (from BaseLayer)
+
+        activation: The activation function
+        rng: numpy RandomState generator instance
+        output: (theano expression) Expression to calculate layer activation
+    """
+    def __init__(self, n_in, n_out, activation=None, random=None, **kwargs):
+        """ Parameters:
+            n_in: (int) Number of input nodes.
+            n_out: (int) Number of output nodes.
+            activation (theano function) The activation function
+            random: (int or numpy RandomState generator)
+        """
+        RandomBase.__init__(self, random)
+        _size = (n_in,) if n_out == 1 else (n_in, n_out)
+        weights = np.asarray(self._rng.uniform(low=-np.sqrt(6./(n_in+n_out)),
+                                               high=np.sqrt(6./(n_in+n_out)),
+                                               size=_size),
+                             dtype=theano.config.floatX)
+
+        BaseLayer.__init__(self, n_in, n_out, weights=weights, **kwargs)
+        if activation:
+            self.activation = activation
+        else:
+            self.activation = T.tanh
+
+        self.output = self.activation(T.dot(self.X, self.W) + self.b)
+
+
+# ESTIMATORS ################################################################
 class LinearRegression(BaseLayer):
     """ Simple Linear Regression.
     Attributes:
