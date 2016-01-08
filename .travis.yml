@@ -1,0 +1,20 @@
+languange: python
+python:
+    - "3.2"
+    - "3.3"
+    - "3.4"
+    - "3.5"
+before_script:
+  - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+  - conda create -q -n test-environment python $TRAVIS_PYTHON_VERSION numpy scipy scikit-learn nose coverage
+  - source activate test-environment
+  - pip install coveralls
+script:
+    - coverage run --source=theano_wrapper --omit=/theano_wrapper/demo.py setup.py test
+after_success: coveralls
