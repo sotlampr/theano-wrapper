@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 import theano
 
-from tests.helpers import SimpleTrainer
-from theano_wrapper.layers import (BaseLayer, HiddenLayer,
+from tests.helpers import SimpleTrainer, SimpleClf
+from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
                                    LinearRegression, LogisticRegression)
 
 
@@ -148,6 +148,53 @@ class TestHiddenLayer(unittest.TestCase):
         self.assertTrue(hasattr(base, 'y'))
         self.assertTrue(hasattr(base.y, 'dtype'))
         self.assertEqual(base.y.dtype, 'float32')
+
+
+class TestMultiLayerBase(unittest.TestCase):
+    """ Tests for MultiLayerBase class """
+    def test_multi_layer_base_has_params(self):
+        base = MultiLayerBase(100, 50, 10, SimpleClf)
+        self.assertTrue(hasattr(base, 'params'),
+                        msg="Class has no attribute 'parameters'")
+
+    def test_multi_layer_base_params_not_empty(self):
+        base = MultiLayerBase(100, 50, 10, SimpleClf)
+        self.assertTrue(base.params, msg="Class 'parameters' are empty")
+
+    def test_multi_layer_base_no_args(self):
+        # Test if MultiLayerBase initializes as expected when given no
+        # extra arguements
+        try:
+            MultiLayerBase(100, 50, 10, SimpleClf)
+        except Exception as e:
+            self.fail("Class initialization failed: %s" % str(e))
+
+    def test_multi_layer_base_single_layer(self):
+        # Test if MultiLayerBase initializes as expected when given no
+        # extra arguements
+        try:
+            MultiLayerBase(100, 50, 10, SimpleClf)
+        except Exception as e:
+            self.fail("Class initialization failed: %s" % str(e))
+
+    def test_multi_layer_base_multi_layer_single_activation(self):
+        # Test if MultiLayerBase initializes as expected when given no
+        # extra arguements
+        try:
+            MultiLayerBase(100, [100, 30, 50], 10, SimpleClf, lambda x: x)
+        except Exception as e:
+            self.fail("Class initialization failed: %s" % str(e))
+
+
+    def test_multi_layer_base_multi_layer_multi_activation(self):
+        # Test if MultiLayerBase initializes as expected when given no
+        # extra arguements
+        try:
+            MultiLayerBase(100, [100, 30, 50], 10, SimpleClf,
+                           [lambda x: x for i in range(3)])
+        except Exception as e:
+            self.fail("Class initialization failed: %s" % str(e))
+
 
 
 class EstimatorTest:

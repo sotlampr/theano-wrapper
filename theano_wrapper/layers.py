@@ -28,13 +28,13 @@ class BaseLayer:
          b: (theano arr(n_out,)) Bias vector
          params: list(W, b) List containing the layer parameters W and b
     """
-    def __init__(self, n_in, n_out, y=None, weights=None):
+    def __init__(self, n_in, n_out, y=None, X=None, weights=None):
         """Arguements:
             n_in: (int) Number of input nodes
             n_out: (int) Number of output nodes
             y: (str, 'int' or 'float') Type of prediction vector (optional)
         """
-        self.X = T.matrix('X')
+        self.X = T.matrix('X') if X is None else X
 
         if y is None:
             # This is a hidden layer, no output vector
@@ -103,6 +103,57 @@ class HiddenLayer(RandomBase, BaseLayer):
             self.activation = T.tanh
 
         self.output = self.activation(T.dot(self.X, self.W) + self.b)
+
+
+class MultiLayerBase(RandomBase):
+    """ A Multi layer network
+    Arguements:
+        n_in: (int) number of input nodes
+        n_hidden: (int or list) if int: a single layer network of n_hidden
+                                        nodes
+                                if list: a multi layer network consisting of
+                                         m = len(n_hidden) layers and nodes
+                                         for each layer given by
+                                         n_hidden[m]
+        n_out: (int) number of output layers
+        out_layer: (estimator class) type of the final layer
+        activation: (function or list of functions)
+                    in accordance with n_hidden. If network is single layer
+                    must be a function, if multi layer can be either a
+                    function or a list of functions.
+    """
+    def __init__(self, n_in, n_hidden, n_out, out_layer, activation=None,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.layers = []
+        if isinstance(n_hidden, int):
+            if isinstance(activation, list):
+                # handle the exception
+                raise TypeError
+            n_prev = n_hidden
+            self.layers.append(HiddenLayer(n_in, n_hidden,
+                                           activation, self._rng))
+        elif isinstance(n_hidden, list):
+            if not isinstance(activation, list):
+                temp = activation
+                activation = [temp for i in range(len(n_hidden))]
+            self.layers.append(HiddenLayer(n_in, n_hidden[0],
+                                           activation[0], self._rng))
+            n_prev = n_hidden[0]
+            for i, n_layer in enumerate(n_hidden):
+                if i == 0:
+                    continue
+                self.layers.append(HiddenLayer(n_prev, n_layer, activation[i],
+                                               self._rng,
+                                               X=self.layers[i-1].output))
+                n_prev = n_layer
+        self.output_layer = out_layer(n_prev, n_out, X=self.layers[-1].output)
+
+        self.X = self.layers[0].X
+        self.y = self.output_layer.y
+        self.cost = self.output_layer.cost
+        self.predict = self.output_layer.predict
+        self.params = [p for l in self.layers for p in l.params]
 
 
 # ESTIMATORS ################################################################
