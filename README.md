@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/sotlampr/theano-wrapper.svg?branch=master)](https://travis-ci.org/sotlampr/theano-wrapper)
+[![Coverage Status](https://coveralls.io/repos/sotlampr/theano-wrapper/badge.svg?branch=master&service=github)](https://coveralls.io/github/sotlampr/theano-wrapper?branch=master)
+
 # theano-wrapper
 *Neural network library based on theano*
 
