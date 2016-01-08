@@ -148,8 +148,8 @@ class EpochTrainer(GradientDescentBase):
         patience: (int) look at least that many samples
         p_inc: (float) how many more samples to fit after each improvement
         imp_thresh: (float) the limit of what to consider improvement
-        random: (int or random state generator) from TrainerBase
-        verbose: (int) from TrainerBase
+        random: (int or random state generator)
+        verbose: (int) verbosity factor. None = off, n = every n periods
     Attributes:
         gradients: (theano symbolic function) The gradient for each parameter
         updates: (theano symbolic function) Compute update values
@@ -207,6 +207,114 @@ class EpochTrainer(GradientDescentBase):
             inputs=[], outputs=self.cost,
             givens={self.X: val_set[0], self.y: val_set[1]})
 
+        self.predict_model = theano.function(inputs=[self.X],
+                                             outputs=self.clf.predict)
+
+
+class SGDTrainer(GradientDescentBase):
+    """ Stohastic Gradient Descnet trainer with patience.
+    Arguements:
+        clf: The estimator to train
+        batch_size: (int or None) how many samples per batch
+                    defaults to none that chooses n_samples/100
+        alpha: (float) learning rate
+        max_iter: (int) max_iterations to go through
+        patience: (int) look at least that many samples
+        p_inc: (float) how many more samples to fit after each improvement
+        imp_thresh: (float) the limit of what to consider improvement
+        random: (int or random state generator)
+        verbose: (int) verbosity factor. None = off, n = every n periods
+    Attributes:
+        gradients: (theano symbolic function) The gradient for each parameter
+        updates: (theano symbolic function) Compute update values
+    Methods:
+        fit(X, y): X: (arr(n_samples, n_features))
+                   y: (arr(n_samples, n_features))
+                   Train estimator using input samples
+                   This implementation will automatically split the input
+                   into an 80% training and an 20% validation set
+        predict(X): Return estimator prediction for input X
+    """
+    def __init__(self, clf, batch_size=None, *args, **kwargs):
+
+        super().__init__(clf, *args, **kwargs)
+        self.batch_size = batch_size
+        self.index = T.lscalar()    # minibatch index
+
+    def fit(self, X, y):
+        """ Split the input into train and validation set and
+        run gradient-descent to find optimal model parameters
+        """
+        # pylint: disable=too-many-branches
+        # maybe I should get rid of the double patience <= iteration
+        # statement at l.284
+        if not self.batch_size:
+            self.batch_size = int(X.shape[0]/100)
+
+        train_set, val_set = self._split_Xy_to_shared(X, y)
+        n_train_batches, n_val_batches = self._get_minibatches(train_set,
+                                                               val_set)
+        self._init_models(train_set, val_set)
+        val_freq = min(n_train_batches, self.patience/3)
+        patience = self.patience
+        best_val_loss = np.inf
+
+        for i in range(self.max_iter):
+            for batch in range(n_train_batches):
+                batch_loss = float(self.train_model(batch))
+                iteration = i * n_train_batches + batch
+                if self._verbose:
+                    if (batch+1) % self._verbose == 0:
+                        sys.stdout.write(
+                            "Epoch {:4d}, minibatch {:4d}/{:4d}, "
+                            "test loss: {:8.3f}, best_val_loss:{:7.3f} "
+                            "{:6d} more samples to go\r".format(
+                                (i+1), (batch+1), n_train_batches,
+                                batch_loss, best_val_loss,
+                                int(patience-iteration)))
+
+                if (iteration+1) % val_freq == 0:
+                    val_loss = np.mean([self.val_model(b)
+                                        for b in range(n_val_batches)])
+                    if val_loss < best_val_loss:
+                        if val_loss < best_val_loss * self.imp_thresh:
+                            patience = max(patience, iteration * self.p_inc)
+                        best_val_loss = val_loss
+
+                if patience <= iteration:
+                    break
+            if patience <= iteration:
+                if self._verbose:
+                    print("\nClassifier converged")
+                break
+        else:
+            if self._verbose:
+                print("\nMaximum iterations reached.")
+        # pylint: enable=too-many-branches
+
+    def _get_minibatches(self, set1, set2):
+        n1 = int(set1[0].get_value(borrow=True).shape[0] / self.batch_size)
+        n2 = int(set2[0].get_value(borrow=True).shape[0] / self.batch_size)
+        return n1, n2
+
+    def _init_models(self, train_set, val_set):
+        self.train_model = theano.function(
+            inputs=[self.index],
+            outputs=self.cost,
+            updates=self.updates,
+            givens={
+                self.X: train_set[0][self.index*self.batch_size:
+                                     (self.index+1)*self.batch_size],
+                self.y: train_set[1][self.index*self.batch_size:
+                                     (self.index+1)*self.batch_size]})
+        self.val_model = theano.function(
+            inputs=[self.index],
+            outputs=self.cost,
+            givens={
+                self.X: val_set[0][self.index*self.batch_size:
+                                   (self.index+1)*self.batch_size],
+                self.y: val_set[1][self.index*self.batch_size:
+                                   (self.index+1)*self.batch_size]})
         self.predict_model = theano.function(inputs=[self.X],
                                              outputs=self.clf.predict)
 # pylint: enable=invalid-name

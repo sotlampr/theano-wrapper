@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import theano
 
-from theano_wrapper.trainers import TrainerBase, EpochTrainer
+from theano_wrapper.trainers import TrainerBase, EpochTrainer, SGDTrainer
 from tests.helpers import SimpleClf
 
 
@@ -88,7 +88,7 @@ class BaseTrainerTest(unittest.TestCase):
         self.assertIn('converge', output.lower())
 
     def test_trainer_fit_reach_max(self):
-        etrain = self.trainer(SimpleClf(), patience=1000, max_iter=100,
+        etrain = self.trainer(SimpleClf(), patience=1000, max_iter=10,
                               verbose=.1)
         saved_stdout = sys.stdout
         out = StringIO()
@@ -112,3 +112,7 @@ class BaseTrainerTest(unittest.TestCase):
 
 class TestEpochTrainer(BaseTrainerTest):
     trainer = EpochTrainer
+
+
+class TestSGDTrainer(BaseTrainerTest):
+    trainer = SGDTrainer
