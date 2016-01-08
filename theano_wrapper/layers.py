@@ -117,9 +117,9 @@ class LinearRegression(BaseLayer):
         predict: (theano expression) Predict target value for input X
         cost: (theano expression) Mean squared error loss function
     """
-    def __init__(self, n_in, n_out):
+    def __init__(self, *args, **kwargs):
         # Initialize Base:ayer
-        super().__init__(n_in, n_out, 'float')
+        super().__init__(*args, 'float', **kwargs)
         self.predict = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
 
@@ -138,13 +138,13 @@ class LogisticRegression(BaseLayer):
         errors: Number of wrongly predicted samples
 
     """
-    def __init__(self, n_in, n_out):
+    def __init__(self, *args, **kwargs):
         """ Parameters:
             n_in: (int) Number of input nodes.
             n_out: (int) Number of output nodes.
         """
         # Initialize BaseLayer
-        super(LogisticRegression, self).__init__(n_in, n_out, 'int')
+        super().__init__(*args, 'int', **kwargs)
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
