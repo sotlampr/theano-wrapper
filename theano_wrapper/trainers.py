@@ -33,13 +33,13 @@ class TrainerBase(RandomBase):
                                         Returns: [(X_train, y_train),
                                                   (X_test, y_test)]
     """
-    def __init__(self, clf, verbose=None, **kwargs):
+    def __init__(self, clf, verbose=None, random=None):
         """Arguements:
         clf: (class) Classifier or Regressor class
         verbose: (int) The verbosity factor. 0 = off
                        n = print report every n-th period
         """
-        super().__init__(**kwargs)
+        super().__init__(random)
         self.clf = clf
         self._verbose = verbose
 
@@ -99,9 +99,9 @@ class GradientDescentBase(TrainerBase):
         predict(X): Return estimator prediction for input X
     """
     def __init__(self, clf, alpha=0.01, max_iter=10000, patience=5000,
-                 p_inc=2.0, imp_thresh=0.995, **kwargs):
+                 p_inc=2.0, imp_thresh=0.995, *args, **kwargs):
 
-        super().__init__(clf, **kwargs)
+        super().__init__(clf, *args, **kwargs)
 
         self.alpha = alpha
         self.max_iter = max_iter

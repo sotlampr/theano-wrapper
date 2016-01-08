@@ -10,15 +10,15 @@ from theano import tensor as T
 
 from theano_wrapper.common import RandomBase
 
+
 # BASE CLASSES ##############################################################
 # pylint: disable=invalid-name
-# Names like X,y, X_train, y_train etc. are common in machine learning
-# tasks. For better readability and comprehension, disable pylint on
-# invalid names.
-
+#   Names like X,y, X_train, y_train etc. are common in machine learning
+#   tasks. For better readability and comprehension, disable pylint on
+#   invalid names.
 # pylint: disable=too-few-public-methods
-# Theano uses internal symbolic functions, it's ok for these classes
-# to have too few public methods
+#   Theano uses internal symbolic functions, it's ok for these classes
+#   to have too few public methods
 class BaseLayer:
     """ Base Class for all layers
     Attributes:
