@@ -19,8 +19,8 @@ class SimpleClf:
         errors: Number of wrongly predicted samples
 
     """
-    def __init__(self, n_in=100, n_out=10):
-        self.X = T.matrix('X')
+    def __init__(self, n_in=100, n_out=10, X=None):
+        self.X = T.matrix('X') if X is None else X
         self.y = T.ivector('y')
         _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
         _bias = np.zeros(n_out,)

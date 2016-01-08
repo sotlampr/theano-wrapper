@@ -28,7 +28,7 @@ class RandomBase:
         mt.rand.RandomState
     """
     def __init__(self, random=None):
-        if random is None:
+        if random is None or random is np.random:
             self._rng = np.random
         else:
             if isinstance(random, int):
