@@ -16,6 +16,8 @@ before_script:
     - conda info -a
     - conda create -q -n test-environment python $TRAVIS_PYTHON_VERSION numpy scipy scikit-learn nose coverage
     - source activate test-environment
+    - echo "[global]" > ~/.theanorc
+    - echo "floatX=float32" >> ~/.theanorc
     - pip install coveralls
 script:
     - coverage run --source=theano_wrapper --omit=theano_wrapper/demo.py setup.py test
