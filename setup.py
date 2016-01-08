@@ -11,5 +11,3 @@ setup(name='theano_wrapper',
       install_requires=['numpy', 'scipy', 'theano', 'scikit-learn',
                         'nose', 'coverage'],
       zip_safe=False)
-
-
