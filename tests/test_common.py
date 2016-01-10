@@ -21,7 +21,7 @@ class TestCommon(unittest.TestCase):
     def test_random_base_init(self):
         Dummy = self.get_random_base_dummy_class()
         try:
-            tester = Dummy(1)
+            Dummy(1)
         except Exception as e:
             print("Class initialization failed: %s" % str(e))
 
