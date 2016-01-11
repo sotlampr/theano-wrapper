@@ -11,7 +11,7 @@ from theano import tensor as T
 from theano_wrapper.common import RandomBase
 
 
-# BASE CLASSES ##############################################################
+# BASE CLASSES ###############################################################
 # pylint: disable=invalid-name
 #   Names like X,y, X_train, y_train etc. are common in machine learning
 #   tasks. For better readability and comprehension, disable pylint on
@@ -68,7 +68,8 @@ class BaseLayer:
         else:
             _weights = weights
 
-        _bias = 0. if n_out == 1 else np.zeros(n_out,)
+        _bias = 0. if n_out == 1 else np.zeros(n_out,
+                                               dtype=theano.config.floatX)
 
         return _weights, _bias
 
@@ -125,7 +126,7 @@ class MultiLayerBase(RandomBase):
     """
     def __init__(self, n_in, n_hidden, n_out, out_layer, activation=None,
                  *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.layers = []
         if isinstance(n_hidden, int):
             if isinstance(activation, list):
@@ -148,16 +149,23 @@ class MultiLayerBase(RandomBase):
                                                self._rng,
                                                X=self.layers[i-1].output))
                 n_prev = n_layer
-        self.output_layer = out_layer(n_prev, n_out, X=self.layers[-1].output)
+        self.output_layer = out_layer(n_prev, n_out, self.layers[-1].output)
 
         self.X = self.layers[0].X
         self.y = self.output_layer.y
         self.cost = self.output_layer.cost
         self.predict = self.output_layer.predict
         self.params = [p for l in self.layers for p in l.params]
+        self.params += self.output_layer.params
 
 
-# ESTIMATORS ################################################################
+# ACTIVATION FUNCTIONS #######################################################
+def relu(value):
+    """ Rectified linear unit activation function """
+    return theano.tensor.switch(value < 0, 0, value)
+
+
+# ESTIMATORS #################################################################
 class LinearRegression(BaseLayer):
     """ Simple Linear Regression.
     Linear regression is a linear predictor modeling the relationship
@@ -184,9 +192,9 @@ class LinearRegression(BaseLayer):
         predict (theano expression): Predict target value for input X.
         cost (theano expression): Mean squared error loss function.
     """
-    def __init__(self, n_in, n_out):
+    def __init__(self, n_in, n_out, *args, **kwargs):
         # Initialize BaseLayer and theano symbolic functions
-        super().__init__(n_in, n_out, 'float')
+        super().__init__(n_in, n_out, 'float', *args, **kwargs)
         self.predict = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
 
@@ -240,7 +248,7 @@ class LogisticRegression(BaseLayer):
         errors (theano expression): Number of wrongly predicted samples.
 
     """
-    def __init__(self, n_in, n_out):
+    def __init__(self, n_in, n_out, *args, **kwargs):
         """ Initialize BaseLayer and the following theano symbolic
         functions:
             probas: Class propabilities
@@ -249,7 +257,7 @@ class LogisticRegression(BaseLayer):
             erros: Return count of errors
         """
         # Initialize BaseLayer
-        super().__init__(n_in, n_out, 'int')
+        super().__init__(n_in, n_out, 'int', *args, **kwargs)
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
@@ -260,5 +268,17 @@ class LogisticRegression(BaseLayer):
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
         self.errors = T.mean(T.neq(self.predict, self.y))
+
+
+class MultiLayerRegression(MultiLayerBase):
+    def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
+        super().__init__(n_in, n_hidden, n_out, LinearRegression,
+                         relu, *args, **kwargs)
+
+
+class MultiLayerPerceptron(MultiLayerBase):
+    def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
+        super().__init__(n_in, n_hidden, n_out, LogisticRegression,
+                         T.tanh, *args, **kwargs)
 # pylint: enable=invalid-name
 # pylint: enable=too-few-public-methods

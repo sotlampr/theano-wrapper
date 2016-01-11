@@ -5,7 +5,8 @@ import theano
 
 from tests.helpers import SimpleTrainer, SimpleClf
 from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
-                                   LinearRegression, LogisticRegression)
+                                   LinearRegression, LogisticRegression,
+                                   MultiLayerPerceptron, MultiLayerRegression)
 
 
 class TestBaseLayer(unittest.TestCase):
@@ -77,8 +78,7 @@ class TestBaseLayer(unittest.TestCase):
 
     def test_base_layer_custom_weights(self):
         try:
-            base = BaseLayer(100, 10,
-                             weights=np.random.random_sample((100, 10)))
+            BaseLayer(100, 10, weights=np.random.random_sample((100, 10)))
         except TypeError:
             self.fail("Class did not accept 'weights' arg")
 
@@ -185,7 +185,6 @@ class TestMultiLayerBase(unittest.TestCase):
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
-
     def test_multi_layer_base_multi_layer_multi_activation(self):
         # Test if MultiLayerBase initializes as expected when given no
         # extra arguements
@@ -196,25 +195,36 @@ class TestMultiLayerBase(unittest.TestCase):
             self.fail("Class initialization failed: %s" % str(e))
 
 
-
 class EstimatorTest:
     X = np.random.standard_normal((500, 100)).astype(np.float32)
 
     def test_estimator_has_params(self):
-        clf = self.estimator(*self.l_shape)
+        clf = self.estimator(*self.args)
         self.assertTrue(hasattr(clf, 'params'))
         self.assertIsNotNone(clf.params)
 
     def test_estimator_has_predict(self):
-        clf = self.estimator(*self.l_shape)
+        clf = self.estimator(*self.args)
         self.assertIsInstance(clf.predict, theano.tensor.TensorVariable)
 
     def test_estimator_has_cost(self):
-        clf = self.estimator(*self.l_shape)
+        clf = self.estimator(*self.args)
         self.assertIsInstance(clf.cost, theano.tensor.TensorVariable)
 
     def test_estimator_fit(self):
-        trn = SimpleTrainer(self.estimator(*self.l_shape))
+        trn = SimpleTrainer(self.estimator(*self.args))
+        try:
+            trn.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+
+class MultiLayerMixin:
+    def test_estimator_fit_three_hidden_single_activation(self):
+        args = list(self.args)
+        # set n_hidden arg to an array of n_nodes for three layers
+        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
+        trn = SimpleTrainer(self.estimator(*args))
         try:
             trn.fit(self.X, self.y)
         except Exception as e:
@@ -222,18 +232,30 @@ class EstimatorTest:
 
 
 class ClassificationTest(EstimatorTest):
-    l_shape = (100, 10)
     y = np.random.randint(0, 9, (500,)).astype(np.int32)
 
 
 class RegressionTest(EstimatorTest):
-    l_shape = (100, 1)
     y = np.random.random((500,)).astype(np.float32)
 
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
     estimator = LinearRegression
+    args = (100, 1)
 
 
 class TestLogisticRegression(unittest.TestCase, ClassificationTest):
     estimator = LogisticRegression
+    args = (100, 10)
+
+
+class TestMultiLayerPerceptron(unittest.TestCase,
+                               ClassificationTest, MultiLayerMixin):
+    estimator = MultiLayerPerceptron
+    args = (100, 100, 10)
+
+
+class TestMultiLayerRegression(unittest.TestCase,
+                               RegressionTest, MultiLayerMixin):
+    estimator = MultiLayerRegression
+    args = (100, 100, 1)
