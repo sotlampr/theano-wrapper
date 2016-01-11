@@ -21,18 +21,21 @@ from theano_wrapper.common import RandomBase
 #   to have too few public methods
 class BaseLayer:
     """ Base Class for all layers
+
+    A base class providing input, output weights and bias.
+
     Attributes:
-         X: (theano matrix) Theano symbolic input
-         y: (theano vector) Theano symbolic output (optional)
-         W: (theano arr(n_in, n_out)) Weights matrix
-         b: (theano arr(n_out,)) Bias vector
-         params: list(W, b) List containing the layer parameters W and b
+        X (theano matrix): Theano symbolic input
+        y (theano vector): Theano symbolic output (optional)
+        W (theano arr(n_in, n_out)): Weights matrix
+        b (theano arr(n_out,)): Bias vector
+        params (list(W, b)): List containing the layer parameters W and b
     """
     def __init__(self, n_in, n_out, y=None, X=None, weights=None):
         """Arguements:
-            n_in: (int) Number of input nodes
-            n_out: (int) Number of output nodes
-            y: (str, 'int' or 'float') Type of prediction vector (optional)
+            n_in (int): Number of input nodes
+            n_out (int): Number of output nodes
+            y (str, 'int' or 'float'): Type of prediction vector (optional)
         """
         self.X = T.matrix('X') if X is None else X
 
@@ -107,20 +110,18 @@ class HiddenLayer(RandomBase, BaseLayer):
 
 class MultiLayerBase(RandomBase):
     """ A Multi layer network
-    Arguements:
-        n_in: (int) number of input nodes
-        n_hidden: (int or list) if int: a single layer network of n_hidden
-                                        nodes
-                                if list: a multi layer network consisting of
-                                         m = len(n_hidden) layers and nodes
-                                         for each layer given by
-                                         n_hidden[m]
-        n_out: (int) number of output layers
-        out_layer: (estimator class) type of the final layer
-        activation: (function or list of functions)
-                    in accordance with n_hidden. If network is single layer
-                    must be a function, if multi layer can be either a
-                    function or a list of functions.
+
+    Attrs:
+        n_in (int): number of input nodes
+        n_hidden (int or list(int)): if int: a single layer network of n_hidden
+            nodes. If list: a multi layer network consisting of
+            m = len(n_hidden) layers and nodes for each layer given
+            by n_hidden[m]
+        n_out (int): number of output layers
+        out_layer (estimator class): type of the final layer
+        activation (function or list of functions): In accordance with
+            n_hidden. If network is single layer must be a function, if multi
+            layer can be either a function or a list of functions.
     """
     def __init__(self, n_in, n_hidden, n_out, out_layer, activation=None,
                  *args, **kwargs):
@@ -159,43 +160,96 @@ class MultiLayerBase(RandomBase):
 # ESTIMATORS ################################################################
 class LinearRegression(BaseLayer):
     """ Simple Linear Regression.
-    Attributes:
-        X: theano input (from BaseLayer)
-        y: theano output (from BaseLayer)
-        W: theano weights (from BaseLayer)
-        b: theano bias (from BaseLayer)
+    Linear regression is a linear predictor modeling the relationship
+    between a scalar dependent variable :math:`y` and one or more explanatory
+    variables denoted :math:`D` from an input sample :math:`X`. The target
+    value is given by the formula:
 
-        predict: (theano expression) Predict target value for input X
-        cost: (theano expression) Mean squared error loss function
+        .. math::
+
+           y = \sum_{i=0}^{|\mathcal{D}|} (W_d \cdot X_d) +  b
+
+    Args:
+        n_in (int): Number of input nodes
+        n_out (int): Number of output nodes
+
+    Attributes:
+
+        X (theano variable): Symbolic input.
+        y (theano variable): Symbolic output.
+        W (theano variable): Weights matrix, shape=(n_in, n_out).
+        b (theano variable): Bias vector, shape=(n_out,).
+
+
+        predict (theano expression): Predict target value for input X.
+        cost (theano expression): Mean squared error loss function.
     """
-    def __init__(self, *args, **kwargs):
-        # Initialize Base:ayer
-        super().__init__(*args, 'float', **kwargs)
+    def __init__(self, n_in, n_out):
+        # Initialize BaseLayer and theano symbolic functions
+        super().__init__(n_in, n_out, 'float')
         self.predict = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
 
 
 class LogisticRegression(BaseLayer):
-    """ Multi-class Logistic Regression.
-    Attributes:
-        X: theano input (from BaseLayer)
-        y: theano output (from BaseLayer)
-        W: theano weights (from BaseLayer)
-        b: theano bias (from BaseLayer)
+    r""" Multi-class Logistic Regression.
 
-        predict: (theano expression) Return the most probable class
-        cost: (theano expression) Negative log-likelihood
-        probas: (theano expression) Calculate probabilities for input X
-        errors: Number of wrongly predicted samples
+    Logistic regression is a probabilistic, linear classifier. It is
+    parametrized by a weight matrix :math:`W` and a bias vector :math:`b`.
+    Classification is done by projecting an input vector onto a set of
+    hyperplanes, each of which corresponds to a class. The distance from the
+    input to a hyperplane reflects the probability that the input is a member
+    of the corresponding class.
+
+
+    .. math::
+          P(Y=i|x, W,b) &= softmax_i(W x + b) \\
+                        &= \frac {e^{W_i x + b_i}} {\sum_j e^{W_j x + b_j}}
+
+
+    The model's prediction :math:`y_{pred}` is the class whose probability
+    is maximal, specifically:
+
+    .. math::
+        y_{pred} = {\rm argmax}_i P(Y=i|x,W,b)
+
+
+    Args:
+        n_in (int): Number of input nodes
+        n_out (int): Number of output nodes
+
+    Attributes:
+
+        X (theano variable): Symbolic input.
+        y (theano variable): Symbolic output.
+        W (theano variable): Weights matrix, shape=(n_in, n_out).
+        b (theano variable): Bias vector, shape=(n_out,).
+
+        predict (theano expression): Return the most probable class
+            (the probability function as described above).
+        cost (theano expression): Negative log-likelihood if we define the
+            likelihood :math:`\cal{L}` and loss :math:`\ell`:
+
+            .. math::
+
+               \mathcal{L} (\theta=\{W,b\}, \mathcal{D}) =
+                 \sum_{i=0}^{|\mathcal{D}|} \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
+               \ell (\theta=\{W,b\}, \mathcal{D}) =
+                  - \mathcal{L} (\theta=\{W,b\}, \mathcal{D})
+        probas (theano expression): Calculate probabilities for input X.
+        errors (theano expression): Number of wrongly predicted samples.
 
     """
-    def __init__(self, *args, **kwargs):
-        """ Parameters:
-            n_in: (int) Number of input nodes.
-            n_out: (int) Number of output nodes.
+    def __init__(self, n_in, n_out):
+        """ Initialize BaseLayer and the following theano symbolic
+        functions:
+            probas: Class propabilities
+            predict: Return the class with the greatest probability
+            cost: Negative log-likelihood
+            erros: Return count of errors
         """
         # Initialize BaseLayer
-        super().__init__(*args, 'int', **kwargs)
+        super().__init__(n_in, n_out, 'int')
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 

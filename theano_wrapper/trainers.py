@@ -21,12 +21,12 @@ from theano_wrapper.common import RandomBase
 class TrainerBase(RandomBase):
     """ Base class for trainers.
     Attributes:
-        clf: (class) Classifier or Regressor
-        X: (theano matrix) From clf
-        y: (theano vector) From clf
-        _verbose: (int) The verbosity factor. 0 = off
+        clf (class): Classifier or Regressor
+        X (theano matrix): From clf
+        y (theano vector): From clf
+        _verbose (int): The verbosity factor. 0 = off
                        n = sys.stdout.write report every n-th period
-        rng: (np.random.RandomState instance) RandomState generator
+        rng (np.random.RandomState instance): RandomState generator
     Methods:
         _Xy_split_to_shared(X, y, lim): Splits the input samples X, y in
                                         training and validation set.
@@ -78,18 +78,18 @@ class TrainerBase(RandomBase):
 # class.
 class GradientDescentBase(TrainerBase):
     """ Base for gradient descent trainers with patience
-    Arguements:
-        clf: The estimator to train
-        alpha: (float) learning rate
-        max_iter: (int) max_iterations to go through
-        patience: (int) look at least that many samples
-        p_inc: (float) how many more samples to fit after each improvement
-        imp_thresh: (float) the limit of what to consider improvement
-        random: (int or random state generator) from TrainerBase
-        verbose: (int) from TrainerBase
+    Args:
+        clf The estimator to train
+        alpha (float): learning rate
+        max_iter (int): max_iterations to go through
+        patience (int): look at least that many samples
+        p_inc (float): how many more samples to fit after each improvement
+        imp_thresh (float): the limit of what to consider improvement
+        random (int or random state generator): from TrainerBase
+        verbose (int): from TrainerBase
     Attributes:
-        gradients: (theano symbolic function) The gradient for each parameter
-        updates: (theano symbolic function) Compute update values
+        gradients (theano symbolic function): The gradient for each parameter
+        updates (theano symbolic function): Compute update values
     Methods:
         fit(X, y): X: (arr(n_samples, n_features))
                    y: (arr(n_samples, n_features))
@@ -141,24 +141,29 @@ class GradientDescentBase(TrainerBase):
 
 class EpochTrainer(GradientDescentBase):
     """ Simple epoch-based trainer using Gradient Descent with patience.
-    Arguements:
-        clf: The estimator to train
-        alpha: (float) learning rate
-        max_iter: (int) max_iterations to go through
-        patience: (int) look at least that many samples
-        p_inc: (float) how many more samples to fit after each improvement
-        imp_thresh: (float) the limit of what to consider improvement
-        random: (int or random state generator)
-        verbose: (int) verbosity factor. None = off, n = every n periods
+    The idea is that we train for at least n  (`patience`) epochs and then if
+    the score keeps getting better (biased by `imp_thresh`) we elongate the
+    training session by a factor of `p_inc`.
+
+    Args:
+        clf: the estimator to train
+        alpha (float): learning rate
+        max_iter (int): max_iterations to go through
+        patience (int): look at least that many samples
+        p_inc (float): how many more samples to fit after each improvement
+        imp_thresh (float): the limit of what to consider improvement
+        random (int or random state generator): a random state for predictable
+            results
+        verbose (int): verbosity factor. None = off, n = every n periods
+
     Attributes:
-        gradients: (theano symbolic function) The gradient for each parameter
-        updates: (theano symbolic function) Compute update values
+        gradients (theano symbolic function): The gradient for each parameter.
+        updates (theano symbolic function): Compute update values.
+
     Methods:
-        fit(X, y): X: (arr(n_samples, n_features))
-                   y: (arr(n_samples, n_features))
-                   Train estimator using input samples
-                   This implementation will automatically split the input
-                   into an 80% training and an 20% validation set
+        fit(X, y): Train estimator using input samples. This implementation
+            will automatically split the input into an 80% training and an
+            20% validation set
         predict(X): Return estimator prediction for input X
     """
     def __init__(self, clf, *args, **kwargs):
@@ -167,7 +172,11 @@ class EpochTrainer(GradientDescentBase):
 
     def fit(self, X, y):
         """ Split the input into train and validation set and
-        run gradient-descent to find optimal model parameters """
+        run gradient-descent to find optimal model parameters
+        Args:
+            X (numpy array): Input matrix of shape: (n_samples, n_features)
+            y (numpy array): Target values, shape: (n_samples,)
+        """
         train_set, val_set = self._split_Xy_to_shared(X, y)
         self._init_models(train_set, val_set)
         val_freq = self.patience/3
@@ -212,27 +221,32 @@ class EpochTrainer(GradientDescentBase):
 
 
 class SGDTrainer(GradientDescentBase):
-    """ Stohastic Gradient Descnet trainer with patience.
-    Arguements:
-        clf: The estimator to train
-        batch_size: (int or None) how many samples per batch
-                    defaults to none that chooses n_samples/100
-        alpha: (float) learning rate
-        max_iter: (int) max_iterations to go through
-        patience: (int) look at least that many samples
-        p_inc: (float) how many more samples to fit after each improvement
-        imp_thresh: (float) the limit of what to consider improvement
-        random: (int or random state generator)
-        verbose: (int) verbosity factor. None = off, n = every n periods
+    """ Simple epoch-based trainer using Gradient Descent with patience.
+    The idea is that we train for at least n  (=`patience`) epochs and then if
+    the score keeps getting better (biased by `imp_thresh`) we elongate the
+    training session by a factor of `p_inc`.
+
+    Args:
+        clf the estimator to train
+        batch_size (int or None): how many samples to consider for each
+            training batch. if None, it is set to int(n_samples/100)
+        alpha (float): learning rate
+        max_iter (int): max_iterations to go through
+        patience (int): look at least that many samples
+        p_inc (float): how many more samples to fit after each improvement
+        imp_thresh (float): the limit of what to consider improvement
+        random (int or random state generator): a random state for predictable
+            resi;ts
+        verbose (int): verbosity factor. None = off, n = every n periods
+
     Attributes:
         gradients: (theano symbolic function) The gradient for each parameter
         updates: (theano symbolic function) Compute update values
+
     Methods:
-        fit(X, y): X: (arr(n_samples, n_features))
-                   y: (arr(n_samples, n_features))
-                   Train estimator using input samples
-                   This implementation will automatically split the input
-                   into an 80% training and an 20% validation set
+        fit(X, y): Train estimator using input samples. This implementation
+            will automatically split the input into an 80% training and an
+            20% validation set
         predict(X): Return estimator prediction for input X
     """
     def __init__(self, clf, batch_size=None, *args, **kwargs):
