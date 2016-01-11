@@ -34,7 +34,7 @@ For a demo, open a python interpreter and type:
     >>> from theano_wrapper.demo import demo
     >>> demo()
 
-for more information, visit `Tutorial <tutorial>`_  and `Reference <reference>`_ section.
+for more information, visit `Tutorial <tutorial.html>`_  and `Reference <reference.html>`_ section.
 
 .. toctree::
    :hidden:
