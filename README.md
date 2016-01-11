@@ -33,7 +33,7 @@ For a demo, open a python interpreter and type:
     >>> from theano_wrapper.demo import demo
     >>> demo()
 
-For a complete documentation visit [Read the docs](http://theano-wrapper.readthedocs.org/en/latest/tutorial.html)
+For a complete documentation visit the [read the docs](http://theano-wrapper.readthedocs.org/en/latest/index.html) page.
 
 ## What is included
 
