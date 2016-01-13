@@ -39,17 +39,20 @@ For a complete documentation visit the [read the docs](http://theano-wrapper.rea
 
 * Regression estimators
     * Linear Regression
+    * Multilayer Linear Regression
 
 * Classification estimators
     * Logistic Regression
+    * Multilayer Perceptron
 
 * Training Classes
     * Simple epoch-based gradient descent training
+    * (Minibatch) Stohastic gradient descent training
 
 * \> 95% testing coverage
 
 ## What is not included
-* More Estimators [coming soon]
+* More Estimators and trainers [coming soon]
 * Documentation
 * Error handling
 * Testing for extreme cases

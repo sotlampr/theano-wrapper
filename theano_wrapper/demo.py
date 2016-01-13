@@ -15,13 +15,15 @@ import time
 import sys
 
 import numpy as np
-from sklearn.datasets import fetch_mldata, load_boston, load_iris
+from sklearn.datasets import (fetch_mldata, load_boston, load_iris,
+                              load_linnerud)
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import classification_report, mean_squared_error
 import theano
 
-from theano_wrapper.layers import (LogisticRegression, LinearRegression)
+from theano_wrapper.layers import (LogisticRegression, LinearRegression,
+                                   MultiLayerPerceptron, MultiLayerRegression)
 from theano_wrapper.trainers import EpochTrainer, SGDTrainer
 
 
@@ -56,6 +58,16 @@ def load_iris_data():
         MinMaxScaler().fit_transform(iris.data.astype(theano.config.floatX)),
         iris.target.astype(np.int32), test_size=0.25,
         random_state=RANDOM_STATE), iris.target_names
+
+
+def load_linnerud_data():
+    """ Load the linnerud dataset using scikit-learn """
+    linnerud = load_linnerud()
+    return train_test_split(
+        MinMaxScaler().fit_transform(
+            linnerud.data.astype(theano.config.floatX)),
+        linnerud.target.astype(theano.config.floatX), test_size=0.25,
+        random_state=RANDOM_STATE)
 
 
 # INTERACTIVE MODE ###########################################################
@@ -118,14 +130,13 @@ def classification_demos(example=None, __test=False):
     """
     def run_example(ex, __test):
         """ Run an examples. Any addition examples should be added here """
-        if ex == '1':
-            epoch_logreg(__test)
-        elif ex == '2':
-            sgd_logreg(__test)
-        elif ex == '3':
-            mnist_epoch_logreg(__test)
-        elif ex == '4':
-            mnist_sgd_logreg(__test)
+        examples = {
+            '1': epoch_logreg,
+            '2': sgd_logreg,
+            '3': mnist_epoch_logreg,
+            '4': mnist_sgd_logreg,
+            '5': mnist_mlp}
+        examples[ex](__test)
 
     if example:
         run_example(example, __test)
@@ -140,7 +151,7 @@ def classification_demos(example=None, __test=False):
                 return
             elif choice == 'p':
                 print_available('clf')
-            elif choice in ['1', '2', '3', '4']:
+            elif choice in ['1', '2', '3', '4', '5']:
                 run_example(choice, False)
             else:
                 print("Invalid choice.")
@@ -154,10 +165,12 @@ def regression_demos(example=None, __test=False):
     """
     def run_example(ex, __test):
         """ Run an example. Any additional examples should be added here. """
-        if ex == '1':
-            epoch_linear(__test)
-        elif ex == '2':
-            sgd_linear(__test)
+        examples = {
+            '1': epoch_linear,
+            '2': sgd_linear,
+            '3': linnerud_linear_sgd,
+            '4': linnerud_mlr}
+        examples[ex](__test)
 
     if example:
         run_example(example, __test)
@@ -170,7 +183,7 @@ def regression_demos(example=None, __test=False):
                 return
             elif choice == 'p':
                 print_available('reg')
-            elif choice in ['1', '2']:
+            elif choice in ['1', '2', '3', '4']:
                 run_example(choice, False)
             else:
                 print("Invalid choice.")
@@ -195,6 +208,8 @@ def print_available(wat):
         print("==> 4:")
         print("\tLogistic Regression with Stohastic Gradient Descent "
               "on the MNIST dataset.")
+        print("==> 5:")
+        print("\tSingle layer multilayer perceptron on the MNIST dataset.")
         print("")
 
     elif wat == 'reg':
@@ -205,8 +220,14 @@ def print_available(wat):
         print("\tEpoch-based Linear Regression on the Boston")
         print("\thousing dataset.")
         print("==> 2:")
-        print("\tLogistic Regression with Stohastic Gradient Descent on the "
+        print("\tLinear Regression with Stohastic Gradient Descent on the "
               "Boston housing dataset.")
+        print("==> 3:")
+        print("\tLinear Regression with Stohastic Gradient Descent on the "
+              "linnerud multivariate dataset.")
+        print("==> 4:")
+        print("\tSingle layer multilayer regresson on the "
+              "linnerud multivariate dataset.")
         print("")
     else:
         print_available('clf')
@@ -301,6 +322,29 @@ def mnist_sgd_logreg(__test):
     print("Took {:.1f} seconds\n".format(time.time()-begin))
 
 
+def mnist_mlp(__test):
+    """ Stohastic Gradient Descent Multilayer Perceptron on the MNIST digits
+    database
+    """
+    print(EQ_BAR)
+    print("Classification demo using a Multilayer Perceptron and Stohastic "
+          "Gradient Descent on the MNIST digits dataset.")
+    print(EQ_BAR)
+    max_iter = 10 if __test else 100000
+    X_train, X_test, y_train, y_test = load_mnist_data()
+    n_in = X_test.shape[1]
+    n_out = len(np.unique(y_train))
+    clf = MultiLayerPerceptron(n_in, int(n_in/2), n_out)
+    trainer = SGDTrainer(clf, batch_size=10, alpha=0.1, patience=6000,
+                         max_iter=max_iter,
+                         imp_thresh=0.9, random=RANDOM_STATE, verbose=3)
+    begin = time.time()
+    trainer.fit(X_train, y_train)
+    y_pred = trainer.predict(X_test)
+    print("\n"+classification_report(y_test, y_pred))
+    print("Took {:.1f} seconds\n".format(time.time()-begin))
+
+
 def epoch_linear(__test):
     """ Epoch-based Linear Regression on the Boston housing dataset. """
     print(EQ_BAR)
@@ -341,6 +385,53 @@ def sgd_linear(__test):
     print("\nRMSE: {}".format(np.sqrt(mean_squared_error(y_test, y_pred))))
     print("Took {:.1f} seconds\n".format(time.time()-begin))
 
+
+def linnerud_linear_sgd(__test):
+    """ Stohastic Gradient Descent Linear Regression on the
+    linnerud multivariate dataset.
+    """
+    print(EQ_BAR)
+    print("Regression demo using Linear Regression and a "
+          "Stohastic Gradient Descent trainer on the linnerud "
+          "multivariate dataset.")
+    print(EQ_BAR)
+    max_iter = 10 if __test else 100000
+    X_train, X_test, y_train, y_test = load_linnerud_data()
+    n_in = X_test.shape[1]
+    n_out = y_test.shape[1]
+    clf = LinearRegression(n_in, n_out)
+    trainer = SGDTrainer(clf, batch_size=1, alpha=0.001, patience=20000,
+                         imp_thresh=0.999, max_iter=max_iter,
+                         random=RANDOM_STATE, verbose=1)
+    begin = time.time()
+    trainer.fit(X_train, y_train)
+    y_pred = trainer.predict(X_test)
+    print("\nRMSE: {}".format(np.sqrt(mean_squared_error(y_test, y_pred))))
+    print("Took {:.1f} seconds\n".format(time.time()-begin))
+
+
+def linnerud_mlr(__test):
+    """ Stohastic Gradient Descent Multilayer Regression on the
+    linnerud multivariate dataset.
+    """
+    print(EQ_BAR)
+    print("Regression demo using Multilayer Regression and a "
+          "Stohastic Gradient Descent trainer on the linnerud "
+          "multivariate dataset.")
+    print(EQ_BAR)
+    max_iter = 10 if __test else 100000
+    X_train, X_test, y_train, y_test = load_linnerud_data()
+    n_in = X_test.shape[1]
+    n_out = y_test.shape[1]
+    clf = MultiLayerRegression(n_in, 3, n_out)
+    trainer = SGDTrainer(clf, batch_size=1, alpha=0.01, patience=20000,
+                         imp_thresh=0.99999, max_iter=max_iter,
+                         random=RANDOM_STATE, verbose=1)
+    begin = time.time()
+    trainer.fit(X_train, y_train)
+    y_pred = trainer.predict(X_test)
+    print("\nRMSE: {}".format(np.sqrt(mean_squared_error(y_test, y_pred))))
+    print("Took {:.1f} seconds\n".format(time.time()-begin))
 
 if __name__ == "__main__":
     demo()

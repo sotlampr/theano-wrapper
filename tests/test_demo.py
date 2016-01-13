@@ -16,6 +16,18 @@ class TestDemo(unittest.TestCase):
         except Exception as e:
             self.fail("Demo raised exception %s" % str(e))
 
+    def test_demo_regression_3(self):
+        try:
+            demo('r3', True)
+        except Exception as e:
+            self.fail("Demo raised exception %s" % str(e))
+
+    def test_demo_regression_4(self):
+        try:
+            demo('r4', True)
+        except Exception as e:
+            self.fail("Demo raised exception %s" % str(e))
+
     def test_demo_classification_1(self):
         try:
             demo('c1', True)
@@ -37,5 +49,11 @@ class TestDemo(unittest.TestCase):
     def test_demo_classification_4(self):
         try:
             demo('c4', True)
+        except Exception as e:
+            self.fail("Demo raised exception %s" % str(e))
+
+    def test_demo_classification_5(self):
+        try:
+            demo('c5', True)
         except Exception as e:
             self.fail("Demo raised exception %s" % str(e))
