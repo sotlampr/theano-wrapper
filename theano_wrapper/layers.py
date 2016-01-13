@@ -11,14 +11,16 @@ from theano import tensor as T
 from theano_wrapper.common import RandomBase
 
 
-# BASE CLASSES ###############################################################
 # pylint: disable=invalid-name
-#   Names like X,y, X_train, y_train etc. are common in machine learning
-#   tasks. For better readability and comprehension, disable pylint on
-#   invalid names.
+#     Names like X,y, X_train, y_train etc. are common in machine learning
+#     tasks. For better readability and comprehension, disable pylint on
+#     invalid names.
 # pylint: disable=too-few-public-methods
-#   Theano uses internal symbolic functions, it's ok for these classes
-#   to have too few public methods
+#     Theano uses internal symbolic functions, it's ok for these classes
+#     to have too few public methods
+# BASE CLASSES ###############################################################
+# pylint: disable=too-many-arguments
+#   Seems ok for these base classes to have a couple of more arguements.
 class BaseLayer:
     """ Base Class for all layers
 
@@ -126,7 +128,7 @@ class MultiLayerBase(RandomBase):
     """
     def __init__(self, n_in, n_hidden, n_out, out_layer, activation=None,
                  *args, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self.layers = []
         if isinstance(n_hidden, int):
             if isinstance(activation, list):
@@ -149,16 +151,16 @@ class MultiLayerBase(RandomBase):
                                                self._rng,
                                                X=self.layers[i-1].output))
                 n_prev = n_layer
-        self.output_layer = out_layer(n_prev, n_out, self.layers[-1].output)
+        self.layers.append(out_layer(n_prev, n_out, self.layers[-1].output))
 
         self.X = self.layers[0].X
-        self.y = self.output_layer.y
-        self.cost = self.output_layer.cost
-        self.predict = self.output_layer.predict
+        self.y = self.layers[-1].y
+        self.cost = self.layers[-1].cost
+        self.predict = self.layers[-1].predict
         self.params = [p for l in self.layers for p in l.params]
-        self.params += self.output_layer.params
 
 
+# pylint: enable=too-many-arguments
 # ACTIVATION FUNCTIONS #######################################################
 def relu(value):
     """ Rectified linear unit activation function """
@@ -167,7 +169,7 @@ def relu(value):
 
 # ESTIMATORS #################################################################
 class LinearRegression(BaseLayer):
-    """ Simple Linear Regression.
+    r""" Simple Linear Regression.
     Linear regression is a linear predictor modeling the relationship
     between a scalar dependent variable :math:`y` and one or more explanatory
     variables denoted :math:`D` from an input sample :math:`X`. The target
@@ -175,7 +177,7 @@ class LinearRegression(BaseLayer):
 
         .. math::
 
-           y = \sum_{i=0}^{|\mathcal{D}|} (W_d \cdot X_d) +  b
+           y = \sum_{i=0}^{|\mathcal{D}|} (W_i \cdot X_i) +  b
 
     Args:
         n_in (int): Number of input nodes
@@ -245,8 +247,6 @@ class LogisticRegression(BaseLayer):
                \ell (\theta=\{W,b\}, \mathcal{D}) =
                   - \mathcal{L} (\theta=\{W,b\}, \mathcal{D})
         probas (theano expression): Calculate probabilities for input X.
-        errors (theano expression): Number of wrongly predicted samples.
-
     """
     def __init__(self, n_in, n_out, *args, **kwargs):
         """ Initialize BaseLayer and the following theano symbolic
@@ -267,16 +267,109 @@ class LogisticRegression(BaseLayer):
         self.cost = -T.mean(
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
-        self.errors = T.mean(T.neq(self.predict, self.y))
-
 
 class MultiLayerRegression(MultiLayerBase):
+    r""" Multilayer Regression.
+
+    An MLP can be viewed as a linear regression predictor where the input
+    is first transformed using a transformation :math:`\Phi`. This
+    transformation projects the input data into a more sparse or dense space.
+    This intermediate layer is referred to as a **hidden layer**.  Formally,
+    a one-hidden-layer MLP is a function :math:`f: R^D \rightarrow R^L`,
+    where :math:`D` is the size of input vector :math:`x` and :math:`L` is
+    the size of the output vector :math:`f(x)`, such that, in matrix notation:
+        .. math::
+
+                f(x) = G( b^{(2)} + W^{(2)}( s( b^{(1)} + W^{(1)} x))),
+
+    with bias vectors :math:`b^{(1)}`, :math:`b^{(2)}`; weight matrices
+    :math:`W^{(1)}`, :math:`W^{(2)}` and activation functions :math:`G` and
+    :math:`s`. The vector :math:`h(x) = \Phi(x) = s(b^{(1)} + W^{(1)} x)`
+    constitutes the hidden layer.  :math:`W^{(1)} \in R^{D \times D_h}` is
+    the weight matrix connecting the input vector to the hidden layer.
+    Each column :math:`W^{(1)}_{\cdot i}` represents the weights from the
+    import input units to the i-th hidden unit. This estimator's :math:`s`
+    is the Rectified linear unit output, or :math:`relu` function.
+
+    Args:
+        n_in (int): number of input nodes
+        n_hidden (int or list(int)): if int this is the number of hidden layer
+            nodes in a single-hidden-layer network. If list of int's this is
+            a list of number of nodes for len(n_hidden) successive layers
+        n_out (int): number of output nodes
+        random (Optional(int or numpy.random.RandomState instance)):
+            an integer seed or random state generator. Default: None, links to
+            np.random
+    Attributes:
+        layers (list): List of all the estimator layers with layers[0] being
+            the input layer, layer[1:-1] being the hidden layers and
+            layers[-1] the output layer.
+        X (theano variable): Symbolic input of first layer.
+        y (theano variable): Symbolic output of last layer.
+        params (list): Vector of all the estimator parameters, i.e. weights
+            and biases of all the layers
+
+        predict (theano expression): Return the most probable class
+            (the probability function as described above).
+        cost (theano expression): Negative log-likelihood from
+            LogisticRegression.
+    """
+
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
         super().__init__(n_in, n_hidden, n_out, LinearRegression,
                          relu, *args, **kwargs)
 
 
 class MultiLayerPerceptron(MultiLayerBase):
+    r""" Multilayer Perceptron.
+
+    An MLR can be viewed as a logistic regression classifier where the input
+    is first transformed using a learnt non-linear transformation
+    :math:`\Phi`. This transformation projects the input data into a space
+    where it becomes linearly separable. This intermediate layer is referred
+    to as a **hidden layer**.
+
+    Formally, a one-hidden-layer MLR is a function
+    :math:`f: R^D \rightarrow R^L`, where :math:`D` is the size of input
+    vector :math:`x` and :math:`L` is the size of the output vector
+    :math:`f(x)`, such that, in matrix notation:
+
+        .. math::
+
+                f(x) = G( b^{(2)} + W^{(2)}( s( b^{(1)} + W^{(1)} x))),
+
+    with bias vectors :math:`b^{(1)}`, :math:`b^{(2)}`; weight matrices
+    :math:`W^{(1)}`, :math:`W^{(2)}` and activation functions :math:`G` and
+    :math:`s`. The vector :math:`h(x) = \Phi(x) = s(b^{(1)} + W^{(1)} x)`
+    constitutes the hidden layer.  :math:`W^{(1)} \in R^{D \times D_h}` is
+    the weight matrix connecting the input vector to the hidden layer.
+    Each column :math:`W^{(1)}_{\cdot i}` represents the weights from the
+    import input units to the i-th hidden unit. This estimator's :math:`s`
+    is the :math:`tanh` function.
+
+    Args:
+        n_in (int): number of input nodes
+        n_hidden (int or list(int)): if int this is the number of hidden layer
+            nodes in a single-hidden-layer network. If list of int's this is
+            a list of number of nodes for len(n_hidden) successive layers
+        n_out (int): number of output nodes
+        random (Optional(int or numpy.random.RandomState instance)):
+            an integer seed or random state generator. Default: None, links to
+            np.random
+    Attributes:
+        layers (list): List of all the estimator layers with layers[0] being
+            the input layer, layer[1:-1] being the hidden layers and
+            layers[-1] the output layer.
+        X (theano variable): Symbolic input of first layer.
+        y (theano variable): Symbolic output of last layer.
+        params (list): Vector of all the estimator parameters, i.e. weights
+            and biases of all the layers
+
+        predict (theano expression): Return the most probable class
+            (the probability function as described above).
+        cost (theano expression): Negative log-likelihood from
+            LogisticRegression.
+    """
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
         super().__init__(n_in, n_hidden, n_out, LogisticRegression,
                          T.tanh, *args, **kwargs)

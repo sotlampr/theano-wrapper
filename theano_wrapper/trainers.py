@@ -221,13 +221,15 @@ class EpochTrainer(GradientDescentBase):
 
 
 class SGDTrainer(GradientDescentBase):
-    """ Simple epoch-based trainer using Gradient Descent with patience.
-    The idea is that we train for at least n  (=`patience`) epochs and then if
-    the score keeps getting better (biased by `imp_thresh`) we elongate the
-    training session by a factor of `p_inc`.
+    """ Stohastic Gradient descent trainer with patience.
+    This classifier works in a similar way to EpochTrainer, but instead of
+    fitting all the samples it splits them to minibatches and go through
+    a subset of all the samples at a fit period. This allows for speed
+    improvements with large datasets and off-line training, i.e. training
+    without all the samples available at once.
 
     Args:
-        clf the estimator to train
+        clf: the estimator to train
         batch_size (int or None): how many samples to consider for each
             training batch. if None, it is set to int(n_samples/100)
         alpha (float): learning rate

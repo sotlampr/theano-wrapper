@@ -65,7 +65,7 @@ class BaseTrainerTest(unittest.TestCase):
 
     def test_trainer_initialization(self):
         try:
-            etrain = self.trainer(SimpleClf())
+            self.trainer(SimpleClf())
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 

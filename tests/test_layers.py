@@ -230,6 +230,25 @@ class MultiLayerMixin:
         except Exception as e:
             self.fail("Training failed: %s" % str(e))
 
+    def test_estimator_random_arguement_int_seed(self):
+        # The estimator should accept a random arguement for initialization
+        # of weights. Here we test an integer seed.
+        trn = SimpleTrainer(self.estimator(*self.args, random=42))
+        try:
+            trn.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_estimator_random_arguement_rng(self):
+        # The estimator should accept a random arguement for initialization
+        # of weights. Here we test a random state generator
+        trn = SimpleTrainer(self.estimator(*self.args,
+                                           random=np.random.RandomState(42)))
+        try:
+            trn.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
 
 class ClassificationTest(EstimatorTest):
     y = np.random.randint(0, 9, (500,)).astype(np.int32)

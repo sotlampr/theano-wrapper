@@ -12,6 +12,15 @@ Logistic Regression
 ~~~~~~~~~~~~~~~~~~~
 .. autoclass:: theano_wrapper.layers.LogisticRegression
 
+Multi-layer Regression
+~~~~~~~~~~~~~~~~~~~
+.. autoclass:: theano_wrapper.layers.MultiLayerRegression(n_in, n_hidden, n_out, random=None)
+
+Multi-Layer Perceptron
+~~~~~~~~~~~~~~~~~~~
+.. autoclass:: theano_wrapper.layers.MultiLayerPerceptron(n_in, n_hidden, n_out, random=None)
+
+
 Trainers
 --------
 Epoch-based

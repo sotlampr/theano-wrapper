@@ -141,7 +141,7 @@ def classification_demos(example=None, __test=False):
             elif choice == 'p':
                 print_available('clf')
             elif choice in ['1', '2', '3', '4']:
-                run_example(choice)
+                run_example(choice, False)
             else:
                 print("Invalid choice.")
 
@@ -171,7 +171,7 @@ def regression_demos(example=None, __test=False):
             elif choice == 'p':
                 print_available('reg')
             elif choice in ['1', '2']:
-                run_example(choice)
+                run_example(choice, False)
             else:
                 print("Invalid choice.")
 
@@ -179,6 +179,7 @@ def regression_demos(example=None, __test=False):
 def print_available(wat):
     """ Print available classification or regression demos """
     if wat == 'clf':
+        # Print available classification demos
         print("\nAvailable Classification demos:")
         print(HASH_BAR)
         print("==> 1:")
@@ -189,14 +190,15 @@ def print_available(wat):
         print("==> 3:")
         print("\tEpoch-based Logistic Regression on the MNIST Dataset.")
         print("\t\t*It has many more samples than the Iris dataset, so it ")
-        print("\t\t is a good example of why we need Stohastic Gradient Descent")
+        print("\t\t is a good example of why we need Stohastic "
+              "Gradient Descent")
         print("==> 4:")
         print("\tLogistic Regression with Stohastic Gradient Descent "
               "on the MNIST dataset.")
         print("")
 
     elif wat == 'reg':
-        """ Print available regression demos """
+        # Print available regression demos
         print("\nAvailable Regression demos:")
         print(HASH_BAR)
         print("==> 1:")
@@ -246,7 +248,8 @@ def sgd_logreg(__test):
     n_out = len(np.unique(y_train))
     clf = LogisticRegression(n_in, n_out)
     trainer = SGDTrainer(clf, batch_size=2, alpha=0.03, patience=10000,
-                         max_iter=max_iter, imp_thresh=0.999, random=RANDOM_STATE, verbose=3)
+                         max_iter=max_iter, imp_thresh=0.999,
+                         random=RANDOM_STATE, verbose=3)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
