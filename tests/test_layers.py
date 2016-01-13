@@ -257,6 +257,16 @@ class ClassificationTest(EstimatorTest):
 class RegressionTest(EstimatorTest):
     y = np.random.random((500,)).astype(np.float32)
 
+    def test_estimator_fit_multivariate(self):
+        args = list(self.args)
+        args[-1] = 5
+        y = np.random.random((500, 5)).astype(np.float32)
+        trn = SimpleTrainer(self.estimator(*args))
+        try:
+            trn.fit(self.X, y)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
     estimator = LinearRegression

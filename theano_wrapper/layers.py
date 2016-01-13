@@ -48,7 +48,7 @@ class BaseLayer:
             if y == 'int':
                 self.y = T.ivector('y')
             elif y == 'float':
-                self.y = T.fvector('y')
+                self.y = T.fvector('y') if n_out == 1 else T.fmatrix('y')
             else:
                 # Handle the exception
                 raise ValueError
