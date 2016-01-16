@@ -49,6 +49,9 @@ For a complete documentation visit the [read the docs](http://theano-wrapper.rea
     * Simple epoch-based gradient descent training
     * (Minibatch) Stohastic gradient descent training
 
+* Regularization
+    * L1 and L2 squared
+
 * \> 95% testing coverage
 
 ## What is not included

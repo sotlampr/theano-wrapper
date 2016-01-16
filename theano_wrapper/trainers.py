@@ -12,8 +12,57 @@ from theano_wrapper.common import RandomBase
 
 
 # REGULARIZERS ###############################################################
-def l1_l2_reg(clf, l1_reg=.0, l2_reg=.0):
-    """ L1 and L2 squared regularization """
+def l1_l2_reg(clf, l1_reg=.0, l2_reg=.0001):
+    r""" L1 and L2 squared regularization.
+
+    L1 and L2 regularization involve adding an extra term to the loss function,
+    which penalizes certain parameter configurations. For a loss function
+    :math:`\ell(\theta, \cal{D})` of the prediction function f parameterized
+    by :math:`\theta` on data set :math:`\cal{D}`, the regularized loss
+    will be:
+
+    .. math::
+
+        E(\theta, \mathcal{D}) =  \ell(\theta, \mathcal{D}) +
+                                  \lambda R(\theta)\\
+    or, in our case
+
+    .. math::
+
+        E(\theta, \mathcal{D}) =  NLL(\theta, \mathcal{D}) +
+                                  \lambda||\theta||_p^p
+
+    where
+
+    .. math::
+
+        ||\theta||_p =
+        \left(\sum_{j=0}^{|\theta|}{|\theta_j|^p}\right)^{\frac{1}{p}}
+
+    :math:`\theta` is a set of all parameters for a given model,
+    :math:`\lambda` the hyper-parameter which controls the relative
+    importance of the regularization parameter and :math:`R` the
+    regularization function. Commonly used values for :math:`p`
+    are 1 and 2, hence the L1/L2 nomenclature. If :math:`p=2`, then the
+    regularizer is also called "weight decay".
+
+    In this model both L1 and L2 regularization is supported.
+
+    Args:
+        clf: an estimator
+        l1_reg (float): The l1 regularization parameter. Defaults to .0
+        l2_reg (float): The l2 regularization parameter. Defaults to .0001
+    Returns:
+        cost (theano expression): Symbolic expression that calculates the
+            regularized cost.
+    Example::
+
+        clf = SomeClassifier(*args)
+        reg = l1_l2_reg(clf, 0.0001, 0.001)
+        trn = SomeTrainer(clf, reg=reg)
+        [...]
+
+    """
     weights = (p for p in clf.params if p.name == 'W')
 
     L1 = T.sum([T.sum(abs(w)) for w in weights])
