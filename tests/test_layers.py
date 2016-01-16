@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import theano
 
-from tests.helpers import SimpleTrainer, SimpleClf
+from tests.helpers import SimpleTrainer, SimpleClf, simple_reg
 from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
                                    LinearRegression, LogisticRegression,
                                    MultiLayerPerceptron, MultiLayerRegression)
@@ -217,6 +217,15 @@ class EstimatorTest:
             trn.fit(self.X, self.y)
         except Exception as e:
             self.fail("Training failed: %s" % str(e))
+
+    def test_estimator_with_regularization(self):
+        clf = self.estimator(*self.args)
+        reg = simple_reg(clf)
+        try:
+            trn = SimpleTrainer(clf, reg)
+            trn.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Estimator failed: %s" % str(e))
 
 
 class MultiLayerMixin:

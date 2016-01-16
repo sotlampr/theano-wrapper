@@ -4,6 +4,16 @@ import theano
 from theano import tensor as T
 
 
+def simple_reg(clf):
+    """ L1 and L2 squared simple regularization """
+    weights = (p for p in clf.params if p.name == 'W')
+
+    L1 = T.sum([T.sum(abs(w)) for w in weights])
+    L2_sqr = T.sum([T.sum(T.pow(w, 2)) for w in weights])
+
+    return clf.cost + 0.001 * L1 + 0.001 * L2_sqr
+
+
 class SimpleClf:
     """ Multi-class Logistic Regression.
     Attributes:
@@ -43,11 +53,11 @@ class SimpleClf:
 
 class SimpleTrainer:
     """ Simple Trainer. Train a network for 30 epochs """
-    def __init__(self, clf):
+    def __init__(self, clf, reg=None):
         self.clf = clf
         self.X = clf.X
         self.y = clf.y
-        self.cost = clf.cost
+        self.cost = reg if reg else clf.cost
 
         self.grads = [T.grad(self.cost, p) for p in self.clf.params]
         self.updates = [(p, p - 0.001 * g)

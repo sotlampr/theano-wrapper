@@ -5,7 +5,8 @@ import unittest
 import numpy as np
 import theano
 
-from theano_wrapper.trainers import TrainerBase, EpochTrainer, SGDTrainer
+from theano_wrapper.trainers import (TrainerBase, l1_l2_reg,
+                                     EpochTrainer, SGDTrainer)
 from tests.helpers import SimpleClf
 
 
@@ -27,7 +28,7 @@ class TestBase(unittest.TestCase):
         self.assertIs(trb.y, clf.y)
 
     def test_trainer_base_verbosity_factor(self):
-        trb = TrainerBase(SimpleClf(), 42)
+        trb = TrainerBase(SimpleClf(), verbose=42)
         self.assertEqual(trb._verbose, 42)
 
     def test_trainer_base_random_state_gen_no_args(self):
@@ -99,7 +100,7 @@ class BaseTrainerTest(unittest.TestCase):
         self.assertIn('maximum', output.lower())
 
     def test_trainer_predict(self):
-        etrain = self.trainer(SimpleClf(), patience=1000, max_iter=100)
+        etrain = self.trainer(SimpleClf(), patience=1000, max_iter=10)
         etrain.fit(self.X, self.y)
         y_pred = etrain.predict(self.X_test)
         self.assertEquals(y_pred.shape, (100,))
@@ -108,6 +109,15 @@ class BaseTrainerTest(unittest.TestCase):
             self.assertIn(targ, y_values,
                           msg="Output contains value non-existent in "
                               "training set")
+
+    def test_train_with_regularization(self):
+        clf = SimpleClf()
+        reg = l1_l2_reg(clf, 0.01, 0.01)
+        try:
+            etrain = self.trainer(clf, reg=reg, max_iter=10)
+            etrain.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Trainer failed: %s" % str(e))
 
 
 class TestEpochTrainer(BaseTrainerTest):

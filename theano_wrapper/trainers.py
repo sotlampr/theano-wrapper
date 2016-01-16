@@ -11,6 +11,18 @@ from theano import tensor as T
 from theano_wrapper.common import RandomBase
 
 
+# REGULARIZERS ###############################################################
+def l1_l2_reg(clf, l1_reg=.0, l2_reg=.0):
+    """ L1 and L2 squared regularization """
+    weights = (p for p in clf.params if p.name == 'W')
+
+    L1 = T.sum([T.sum(abs(w)) for w in weights])
+    L2_sqr = T.sum([T.sum(T.pow(w, 2)) for w in weights])
+
+    return clf.cost + l1_reg * L1 + l2_reg * L2_sqr
+
+
+# BASE CLASSES ###############################################################
 # pylint: disable=invalid-name
 # Names like X,y, X_train, y_train etc. are common in machine learning
 # tasks. For better readability and comprehension, disable pylint on
@@ -33,7 +45,7 @@ class TrainerBase(RandomBase):
                                         Returns: [(X_train, y_train),
                                                   (X_test, y_test)]
     """
-    def __init__(self, clf, verbose=None, random=None):
+    def __init__(self, clf, reg=None, verbose=None, random=None):
         """Arguements:
         clf: (class) Classifier or Regressor class
         verbose: (int) The verbosity factor. 0 = off
@@ -42,6 +54,8 @@ class TrainerBase(RandomBase):
         super().__init__(random)
         self.clf = clf
         self._verbose = verbose
+
+        self.cost = reg if reg else self.clf.cost
 
         self.X = clf.X
         self.y = clf.y
@@ -72,6 +86,7 @@ class TrainerBase(RandomBase):
         return [(X_train, y_train), (X_test, y_test)]
 
 
+# TRAINERS ###################################################################
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-arguments
 # It is inevitable to have that many arguements and parameters for a training
@@ -108,7 +123,6 @@ class GradientDescentBase(TrainerBase):
         self.patience = patience
         self.p_inc = p_inc
         self.imp_thresh = imp_thresh
-        self.cost = self.clf.cost
 
         self.gradients = [T.grad(self.cost, p) for p in self.clf.params]
         self.updates = [(p, p - self.alpha * g)
