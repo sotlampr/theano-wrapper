@@ -405,7 +405,8 @@ class TiedAutoEncoder(RandomBase):
 
 
 class AutoEncoder(RandomBase):
-    def __init__(self, n_in, n_hidden, activation=None, *args, **kwargs):
+    def __init__(self, n_in, n_hidden, activation=None, cost=None,
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
 
@@ -442,7 +443,15 @@ class AutoEncoder(RandomBase):
         self.transform = self.layers[-2].output
         self.reconstruct = self.layers[-1].output
 
-        self.cost = T.mean(-T.sum(self.X * T.log(self.reconstruct) +
-                                  (1 - self.X)))
+        cost = 'squared' if cost is None else cost
+
+        if isinstance(cost, str):
+            if cost == 'squared':
+                self.cost = T.sum(T.pow(T.abs_(self.X - self.reconstruct), 2))
+            elif cost == 'cross_entropy':
+                self.cost = T.mean(-T.sum(
+                    self.X * T.log(self.reconstruct) + (1 - self.X)))
+        else:
+            self.cost = cost(self)
 # pylint: enable=invalid-name
 # pylint: enable=too-few-public-methods
