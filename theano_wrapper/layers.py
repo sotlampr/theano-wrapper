@@ -404,5 +404,45 @@ class TiedAutoEncoder(RandomBase):
                                   axis=1))
 
 
+class AutoEncoder(RandomBase):
+    def __init__(self, n_in, n_hidden, activation=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        activation = T.nnet.sigmoid if activation is None else activation
+
+        self.layers = []
+        if isinstance(n_hidden, int) or isinstance(n_hidden, float):
+            if isinstance(n_hidden, float):
+                n_hidden = int(n_in * n_hidden)
+            if not isinstance(activation, list):
+                activation = [activation, activation]
+            n_prev = n_hidden
+            self.layers.append(HiddenLayer(n_in, n_hidden,
+                                           activation[0], self._rng))
+        elif isinstance(n_hidden, list):
+            if not isinstance(activation, list):
+                temp = activation
+                activation = [temp for i in range(len(n_hidden)+1)]
+            self.layers.append(HiddenLayer(n_in, n_hidden[0],
+                                           activation[0], self._rng))
+            n_prev = n_hidden[0]
+            for i, n_layer in enumerate(n_hidden):
+                if i == 0:
+                    continue
+                self.layers.append(HiddenLayer(n_prev, n_layer, activation[i],
+                                               self._rng,
+                                               X=self.layers[i-1].output))
+                n_prev = n_layer
+
+        self.layers.append(HiddenLayer(n_prev, n_in, activation[-1],
+                                       X=self.layers[-1].output))
+
+        self.params = [p for l in self.layers for p in l.params]
+
+        self.X = self.layers[0].X
+        self.transform = self.layers[-2].output
+        self.reconstruct = self.layers[-1].output
+
+        self.cost = T.mean(-T.sum(self.X * T.log(self.reconstruct) +
+                                  (1 - self.X)))
 # pylint: enable=invalid-name
 # pylint: enable=too-few-public-methods

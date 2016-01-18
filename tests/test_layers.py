@@ -2,12 +2,13 @@ import unittest
 
 import numpy as np
 import theano
+import theano.tensor as T
 
 from tests.helpers import SimpleTrainer, SimpleClf, simple_reg
 from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
                                    LinearRegression, LogisticRegression,
                                    MultiLayerPerceptron, MultiLayerRegression,
-                                   TiedAutoEncoder)
+                                   TiedAutoEncoder, AutoEncoder)
 
 
 # BASE LAYERS ################################################################
@@ -231,7 +232,7 @@ class EstimatorTests:
             self.fail("Estimator failed: %s" % str(e))
 
 
-class MultiLayerMixin:
+class MultiLayerEstimatorMixin:
     def test_estimator_fit_three_hidden_single_activation(self):
         args = list(self.args)
         # set n_hidden arg to an array of n_nodes for three layers
@@ -291,13 +292,13 @@ class TestLogisticRegression(unittest.TestCase, ClassificationTest):
 
 
 class TestMultiLayerPerceptron(unittest.TestCase,
-                               ClassificationTest, MultiLayerMixin):
+                               ClassificationTest, MultiLayerEstimatorMixin):
     estimator = MultiLayerPerceptron
     args = (100, 100, 10)
 
 
 class TestMultiLayerRegression(unittest.TestCase,
-                               RegressionTest, MultiLayerMixin):
+                               RegressionTest, MultiLayerEstimatorMixin):
     estimator = MultiLayerRegression
     args = (100, 100, 1)
 
@@ -335,7 +336,65 @@ class TransformerTests:
         except Exception as e:
             self.fail("Estimator failed: %s" % str(e))
 
+    def test_transfomer_float_n_hidden(self):
+        args = list(self.args)
+        args[-1] = 0.5
+        trn = SimpleTrainer(self.transformer(*args))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+
+class MultiLayerTransformerMixin:
+    def test_transformer_fit_three_hidden_single_activation(self):
+        args = list(self.args)
+        # set n_hidden arg to an array of n_nodes for three layers
+        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
+        trn = SimpleTrainer(self.transformer(*args))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_transformer_fit_three_hidden_all_activations(self):
+        args = list(self.args)
+        # set n_hidden arg to an array of n_nodes for three layers
+        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
+        activation = [T.nnet.sigmoid, T.nnet.softplus, T.nnet.softmax,
+                      T.nnet.sigmoid]
+        trn = SimpleTrainer(self.transformer(*args, activation))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_transformer_random_arguement_int_seed(self):
+        # The transformer should accept a random arguement for initialization
+        # of weights. Here we test an integer seed.
+        trn = SimpleTrainer(self.transformer(*self.args, random=42))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_transformer_random_arguement_rng(self):
+        # The transformer should accept a random arguement for initialization
+        # of weights. Here we test a random state generator
+        trn = SimpleTrainer(self.transformer(*self.args,
+                                             random=np.random.RandomState(42)))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
 
 class TestTiedAutoEncoder(unittest.TestCase, TransformerTests):
     transformer = TiedAutoEncoder
+    args = (100, 50)
+
+
+class TestAutoEncoder(unittest.TestCase, TransformerTests,
+                      MultiLayerTransformerMixin):
+    transformer = AutoEncoder
     args = (100, 50)
