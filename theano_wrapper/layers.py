@@ -33,7 +33,7 @@ class BaseLayer:
         b (theano arr(n_out,)): Bias vector
         params (list(W, b)): List containing the layer parameters W and b
     """
-    def __init__(self, n_in, n_out, y=None, X=None, weights=None):
+    def __init__(self, n_in, n_out, y=None, X=None, weights=None, bias=None):
         """Arguements:
             n_in (int): Number of input nodes
             n_out (int): Number of output nodes
@@ -52,28 +52,30 @@ class BaseLayer:
             else:
                 # Handle the exception
                 raise ValueError
+        else:
+            self.y = y
 
-        _weights, _bias = self.__init_weights_bias(weights, n_in, n_out)
+        _weights, _bias = self.__init_weights_bias(weights, bias, n_in, n_out)
 
         self.W = theano.shared(_weights, name='W')
         self.b = theano.shared(_bias, name='b')
         self.params = [self.W, self.b]
 
     @staticmethod
-    def __init_weights_bias(weights, n_in, n_out):
+    def __init_weights_bias(weights, bias, n_in, n_out):
         # Weights and bias initialization
-        if weights is None:
-            if n_out == 1:
-                _weights = np.zeros((n_in), dtype=theano.config.floatX)
-            else:
-                _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
+        if n_out == 1:
+            if weights is None:
+                weights = np.zeros((n_in), dtype=theano.config.floatX)
+            if bias is None:
+                bias = .0
         else:
-            _weights = weights
+            if weights is None:
+                weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
+            if bias is None:
+                bias = np.zeros(n_out, dtype=theano.config.floatX)
 
-        _bias = 0. if n_out == 1 else np.zeros(n_out,
-                                               dtype=theano.config.floatX)
-
-        return _weights, _bias
+        return weights, bias
 
 
 class HiddenLayer(RandomBase, BaseLayer):
@@ -373,5 +375,34 @@ class MultiLayerPerceptron(MultiLayerBase):
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
         super().__init__(n_in, n_hidden, n_out, LogisticRegression,
                          T.tanh, *args, **kwargs)
+
+
+# TRANSFORMERS ###############################################################
+class TiedAutoEncoder(RandomBase):
+    def __init__(self, n_in, n_hidden, activation=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        activation = T.nnet.sigmoid if activation is None else activation
+
+        self.layers = []
+
+        if isinstance(n_hidden, float):
+            n_hidden = int(n_in * n_hidden)
+        self.layers.append(HiddenLayer(n_in, n_hidden,
+                                       activation, self._rng))
+
+        self.layers.append(HiddenLayer(n_hidden, n_in, activation, self._rng,
+                                       X=self.layers[0].output))
+        self.layers[1].W = self.layers[0].W.T
+        self.params = [self.layers[0].W, self.layers[0].b, self.layers[1].b]
+
+        self.X = self.layers[0].X
+        self.transform = self.layers[0].output
+        self.reconstruct = self.layers[1].output
+
+        self.cost = T.mean(-T.sum(self.X * T.log(self.reconstruct) +
+                                  (1 - self.X) * T.log(1 - self.reconstruct),
+                                  axis=1))
+
+
 # pylint: enable=invalid-name
 # pylint: enable=too-few-public-methods

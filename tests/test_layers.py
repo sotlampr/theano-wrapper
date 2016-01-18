@@ -6,9 +6,11 @@ import theano
 from tests.helpers import SimpleTrainer, SimpleClf, simple_reg
 from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
                                    LinearRegression, LogisticRegression,
-                                   MultiLayerPerceptron, MultiLayerRegression)
+                                   MultiLayerPerceptron, MultiLayerRegression,
+                                   TiedAutoEncoder)
 
 
+# BASE LAYERS ################################################################
 class TestBaseLayer(unittest.TestCase):
     """ Tests for layer.py module, which includes various types of layers
     for theano-wrapper
@@ -195,7 +197,8 @@ class TestMultiLayerBase(unittest.TestCase):
             self.fail("Class initialization failed: %s" % str(e))
 
 
-class EstimatorTest:
+# ESTIMATORS #################################################################
+class EstimatorTests:
     X = np.random.standard_normal((500, 100)).astype(np.float32)
 
     def test_estimator_has_params(self):
@@ -259,11 +262,11 @@ class MultiLayerMixin:
             self.fail("Training failed: %s" % str(e))
 
 
-class ClassificationTest(EstimatorTest):
+class ClassificationTest(EstimatorTests):
     y = np.random.randint(0, 9, (500,)).astype(np.int32)
 
 
-class RegressionTest(EstimatorTest):
+class RegressionTest(EstimatorTests):
     y = np.random.random((500,)).astype(np.float32)
 
     def test_estimator_fit_multivariate(self):
@@ -297,3 +300,42 @@ class TestMultiLayerRegression(unittest.TestCase,
                                RegressionTest, MultiLayerMixin):
     estimator = MultiLayerRegression
     args = (100, 100, 1)
+
+
+# TRANSFORMERS ###############################################################
+class TransformerTests:
+    X = np.random.standard_normal((500, 100)).astype(np.float32)
+
+    def test_transformer_has_params(self):
+        clf = self.transformer(*self.args)
+        self.assertTrue(hasattr(clf, 'params'))
+        self.assertIsNotNone(clf.params)
+
+    def test_transformer_has_transform(self):
+        clf = self.transformer(*self.args)
+        self.assertIsInstance(clf.transform, theano.tensor.TensorVariable)
+
+    def test_transformer_has_cost(self):
+        clf = self.transformer(*self.args)
+        self.assertIsInstance(clf.cost, theano.tensor.TensorVariable)
+
+    def test_transformer_fit(self):
+        trn = SimpleTrainer(self.transformer(*self.args))
+        try:
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_transformer_with_regularization(self):
+        clf = self.transformer(*self.args)
+        reg = simple_reg(clf)
+        try:
+            trn = SimpleTrainer(clf, reg)
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Estimator failed: %s" % str(e))
+
+
+class TestTiedAutoEncoder(unittest.TestCase, TransformerTests):
+    transformer = TiedAutoEncoder
+    args = (100, 50)
