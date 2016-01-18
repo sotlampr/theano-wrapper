@@ -240,7 +240,7 @@ def epoch_logreg(__test):
     print("Classification demo using Logistic Regression and an "
           "epoch-based trainer on the Iris dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 200000
+    max_iter = 3 if __test else 200000
     data, target_names = load_iris_data()
     X_train, X_test, y_train, y_test = data
     n_in = X_test.shape[1]
@@ -262,7 +262,7 @@ def sgd_logreg(__test):
     print("Classification demo using Logistic Regression and Stohastic "
           "Gradient Descent on the Iris dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 200000
+    max_iter = 3 if __test else 200000
     data, target_names = load_iris_data()
     X_train, X_test, y_train, y_test = data
     n_in = X_test.shape[1]
@@ -285,7 +285,7 @@ def mnist_epoch_logreg(__test):
     print("Classification demo using Logistic Regression and an "
           "epoch-based trainer on the MNIST dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 200000
+    max_iter = 3 if __test else 200000
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
@@ -307,7 +307,7 @@ def mnist_sgd_logreg(__test):
     print("Classification demo using Logistic Regression and Stohastic "
           "Gradient Descent on the MNIST digits dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 3 if __test else 100000
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
@@ -330,7 +330,7 @@ def mnist_mlp(__test):
     print("Classification demo using a Multilayer Perceptron and Stohastic "
           "Gradient Descent on the MNIST digits dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 2 if __test else 100000
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
@@ -351,7 +351,7 @@ def epoch_linear(__test):
     print("Regression demo using Linear Regression and an "
           "epoch-based trainer on the Boston Housing dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 3 if __test else 100000
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
     clf = LinearRegression(n_in, 1)
@@ -372,7 +372,7 @@ def sgd_linear(__test):
     print("Regression demo using Linear Regression and a "
           "Stohastic Gradient Descent trainer on the Boston Housing dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 3 if __test else 100000
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
     clf = LinearRegression(n_in, 1)
@@ -395,7 +395,7 @@ def linnerud_linear_sgd(__test):
           "Stohastic Gradient Descent trainer on the linnerud "
           "multivariate dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 3 if __test else 100000
     X_train, X_test, y_train, y_test = load_linnerud_data()
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
@@ -419,7 +419,7 @@ def linnerud_mlr(__test):
           "Stohastic Gradient Descent trainer on the linnerud "
           "multivariate dataset.")
     print(EQ_BAR)
-    max_iter = 10 if __test else 100000
+    max_iter = 3 if __test else 100000
     X_train, X_test, y_train, y_test = load_linnerud_data()
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
