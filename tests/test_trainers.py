@@ -7,7 +7,7 @@ import theano
 
 from theano_wrapper.trainers import (TrainerBase, l1_l2_reg,
                                      EpochTrainer, SGDTrainer)
-from tests.helpers import SimpleClf
+from tests.helpers import SimpleClf, SimpleTransformer
 
 
 class TestBase(unittest.TestCase):
@@ -109,6 +109,21 @@ class BaseTrainerTest(unittest.TestCase):
             self.assertIn(targ, y_values,
                           msg="Output contains value non-existent in "
                               "training set")
+
+    def test_trainer_with_transformer(self):
+        etrain = self.trainer(SimpleTransformer(), max_iter=3)
+        try:
+            etrain.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_trainer_transform(self):
+        etrain = self.trainer(SimpleTransformer(), max_iter=3)
+        etrain.fit(self.X)
+        try:
+            etrain.transform(self.X[:10])
+        except Exception as e:
+            self.fail("Failed: %s" % str(e))
 
     def test_train_with_regularization(self):
         clf = SimpleClf()

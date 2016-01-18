@@ -51,20 +51,53 @@ class SimpleClf:
         self.errors = T.mean(T.neq(self.predict, self.y))
 
 
+class SimpleTransformer:
+    def __init__(self, n_in=100, n_hidden=50):
+        self.X = T.matrix('X')
+        _weights = np.zeros((n_in, n_hidden), dtype=theano.config.floatX)
+        _bias_vis = np.zeros(n_in, dtype=theano.config.floatX)
+        _bias_hid = np.zeros(n_hidden, dtype=theano.config.floatX)
+
+        self.W = theano.shared(value=_weights, name='W')
+        self.b = theano.shared(_bias_hid, name='b')
+        self.b_pr = theano.shared(_bias_vis)
+        self.W_pr = self.W.T
+
+        self.params = [self.W, self.b, self.b_pr]
+
+        self.transform = T.nnet.sigmoid(T.dot(self.X, self.W) + self.b)
+        self.recon_out = T.nnet.sigmoid(T.dot(self.transform, self.W_pr) +
+                                        self.b_pr)
+
+        self.cost = T.mean(-T.sum(self.X * T.log(self.recon_out) +
+                                  (1 - self.X) * T.log(1 - self.recon_out),
+                                  axis=1))
+
+
 class SimpleTrainer:
     """ Simple Trainer. Train a network for 30 epochs """
     def __init__(self, clf, reg=None):
         self.clf = clf
         self.X = clf.X
-        self.y = clf.y
+        try:
+            self.y = clf.y
+        except AttributeError:
+            self.y = None
         self.cost = reg if reg else clf.cost
 
         self.grads = [T.grad(self.cost, p) for p in self.clf.params]
         self.updates = [(p, p - 0.001 * g)
                         for p, g in zip(self.clf.params, self.grads)]
 
-    def fit(self, X, y):
-        train_model = theano.function(inputs=[self.X, self.y],
+    def fit(self, X, y=None):
+        if y is not None:
+            inputs = [self.X, self.y]
+        else:
+            inputs = [self.X]
+        train_model = theano.function(inputs=inputs,
                                       updates=self.updates)
         for _ in range(30):
-            train_model(X, y)
+            if y is not None:
+                train_model(X, y)
+            else:
+                train_model(X)

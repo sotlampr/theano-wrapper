@@ -107,7 +107,40 @@ class TrainerBase(RandomBase):
         self.cost = reg if reg else self.clf.cost
 
         self.X = clf.X
-        self.y = clf.y
+        try:
+            self.y = clf.y
+            self.__clf_type = 'estimator'
+        except AttributeError:
+            self.y = None
+            self.__clf_type = 'transformer'
+
+    def fit(self, X, y=None):
+        if y is None:
+            self._fit_transformer(X)
+        else:
+            self._fit_estimator(X, y)
+
+    def _fit(self, train_set, val_set):
+        """ Children class should implement a _fit function for fitting
+        both tranformers and estimators
+        """
+
+    def _fit_transformer(self, X):
+        """ Fit function for transfomers
+        input: X: arr(n_samples, n_features))
+        output: None, train the model
+        """
+        self._fit(*self._split_X_to_shared(X))
+
+    def _fit_estimator(self, X, y):
+        """ Fit function for estimators
+        input: X: arr(n_samples, n_features)), y: arr(n_samples)
+        output: None, train the model
+        """
+        self._fit(*self._split_Xy_to_shared(X, y))
+
+    def _init_models(self, train_set, val_set):
+        pass
 
     def _split_Xy_to_shared(self, X, y, lim=0.8):
         """ Split X and y into training and validation sets and store them
@@ -133,6 +166,51 @@ class TrainerBase(RandomBase):
         y_test = theano.shared(np.asarray(y[test]), borrow=True)
 
         return [(X_train, y_train), (X_test, y_test)]
+
+    def _split_X_to_shared(self, X, lim=0.8):
+        """ Split X into training and validation sets and store them
+        on theano variables.
+        Arguements:
+            X: (arr(n_samples, n_features)): Input samples
+            lim: (float) Limit for training set.
+                         e.g. 0.6 = 60% train, 40% validation
+                         default value: 0.8 (80% train, 20% validation)
+        """
+        per = self._rng.permutation(len(X))
+        lim = int(len(X) * lim)
+        train, test = per[:lim], per[lim:]
+
+        X_train = theano.shared(np.asarray(X[train],
+                                           dtype=theano.config.floatX),
+                                borrow=True)
+        X_test = theano.shared(np.asarray(X[test],
+                                          dtype=theano.config.floatX),
+                               borrow=True)
+
+        return [(X_train,), (X_test,)]
+
+    def predict(self, X):
+        """ Predict y given X """
+        if self.__clf_type == 'transformer':
+            # handle the exception
+            raise AttributeError("Given clf is a transformer")
+        else:
+            if hasattr(self, 'predict_model'):
+                return self.predict_model(X)   # pylint: disable=not-callable
+            else:
+                # handle the exception
+                raise AttributeError("Estimator hasn't been fitted yet")
+
+    def transform(self, X):
+        if self.__clf_type == 'estimator':
+            # handle the exception
+            raise AttributeError("Given clf is an estimator")
+        else:
+            if hasattr(self, 'transform_model'):
+                return self.transform_model(X)   # pylint: disable=not-callable
+            else:
+                # handle the exception
+                raise AttributeError("Transformer hasn't been fitted yet")
 
 
 # TRAINERS ###################################################################
@@ -180,24 +258,6 @@ class GradientDescentBase(TrainerBase):
         self.train_model = None
         self.val_model = None
         self.predict_model = None
-
-    def fit(self, X, y):
-        """ Children class should implement a fit function
-        input: X: arr(n_samples, n_features), y: arr(n_samples,)
-        output: None, train the model
-        """
-        pass
-
-    def _init_models(self, train_set, val_set):
-        pass
-
-    def predict(self, X):
-        """ Predict y given X """
-        if hasattr(self, 'predict_model'):
-            return self.predict_model(X)   # pylint: disable=not-callable
-        else:
-            # handle the exception
-            raise AttributeError("Classifier hasn't been fitted yet")
 # pylint: enable=too-few-public-methods
 # pylint: enable=too-many-arguments
 
@@ -233,14 +293,13 @@ class EpochTrainer(GradientDescentBase):
 
         super().__init__(clf, *args, **kwargs)
 
-    def fit(self, X, y):
+    def _fit(self, train_set, val_set):
         """ Split the input into train and validation set and
         run gradient-descent to find optimal model parameters
         Args:
             X (numpy array): Input matrix of shape: (n_samples, n_features)
             y (numpy array): Target values, shape: (n_samples,)
         """
-        train_set, val_set = self._split_Xy_to_shared(X, y)
         self._init_models(train_set, val_set)
         val_freq = self.patience/3
         patience = self.patience
@@ -271,16 +330,24 @@ class EpochTrainer(GradientDescentBase):
                 print("\nMaximum iterations reached.")
 
     def _init_models(self, train_set, val_set):
+        if self.y is not None:
+            givens_train = {self.X: train_set[0], self.y: train_set[1]}
+            givens_val = {self.X: val_set[0], self.y: val_set[1]}
+            self.predict_model = theano.function(inputs=[self.X],
+                                                 outputs=self.clf.predict)
+        else:
+            givens_train = {self.X: train_set[0]}
+            givens_val = {self.X: val_set[0]}
+            self.transform_model = theano.function(inputs=[self.X],
+                                                   outputs=self.clf.transform)
+
         self.train_model = theano.function(
             inputs=[], outputs=self.cost, updates=self.updates,
-            givens={self.X: train_set[0], self.y: train_set[1]})
+            givens=givens_train)
 
         self.val_model = theano.function(
             inputs=[], outputs=self.cost,
-            givens={self.X: val_set[0], self.y: val_set[1]})
-
-        self.predict_model = theano.function(inputs=[self.X],
-                                             outputs=self.clf.predict)
+            givens=givens_val)
 
 
 class SGDTrainer(GradientDescentBase):
@@ -320,7 +387,7 @@ class SGDTrainer(GradientDescentBase):
         self.batch_size = batch_size
         self.index = T.lscalar()    # minibatch index
 
-    def fit(self, X, y):
+    def _fit(self, train_set, val_set):
         """ Split the input into train and validation set and
         run gradient-descent to find optimal model parameters
         """
@@ -328,9 +395,8 @@ class SGDTrainer(GradientDescentBase):
         # maybe I should get rid of the double patience <= iteration
         # statement at l.284
         if not self.batch_size:
-            self.batch_size = int(X.shape[0]/100)
+            self.batch_size = int(train_set[0].get_value().shape[0]/100)
 
-        train_set, val_set = self._split_Xy_to_shared(X, y)
         n_train_batches, n_val_batches = self._get_minibatches(train_set,
                                                                val_set)
         self._init_models(train_set, val_set)
@@ -377,23 +443,35 @@ class SGDTrainer(GradientDescentBase):
         return n1, n2
 
     def _init_models(self, train_set, val_set):
-        self.train_model = theano.function(
-            inputs=[self.index],
-            outputs=self.cost,
-            updates=self.updates,
-            givens={
+        if self.y is not None:
+            givens_train = {
                 self.X: train_set[0][self.index*self.batch_size:
                                      (self.index+1)*self.batch_size],
                 self.y: train_set[1][self.index*self.batch_size:
-                                     (self.index+1)*self.batch_size]})
-        self.val_model = theano.function(
-            inputs=[self.index],
-            outputs=self.cost,
-            givens={
+                                     (self.index+1)*self.batch_size]}
+            givens_val = {
                 self.X: val_set[0][self.index*self.batch_size:
                                    (self.index+1)*self.batch_size],
                 self.y: val_set[1][self.index*self.batch_size:
-                                   (self.index+1)*self.batch_size]})
-        self.predict_model = theano.function(inputs=[self.X],
-                                             outputs=self.clf.predict)
+                                   (self.index+1)*self.batch_size]}
+            self.predict_model = theano.function(inputs=[self.X],
+                                                 outputs=self.clf.predict)
+        else:
+            givens_train = {
+                self.X: train_set[0][self.index*self.batch_size:
+                                     (self.index+1)*self.batch_size]}
+            givens_val = {
+                self.X: val_set[0][self.index*self.batch_size:
+                                   (self.index+1)*self.batch_size]}
+            self.transform_model = theano.function(inputs=[self.X],
+                                                   outputs=self.clf.transform)
+
+        self.train_model = theano.function(
+            inputs=[self.index], outputs=self.cost,
+            updates=self.updates, givens=givens_train)
+
+        self.val_model = theano.function(
+            inputs=[self.index], outputs=self.cost,
+            givens=givens_val)
+
 # pylint: enable=invalid-name
