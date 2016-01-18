@@ -400,14 +400,14 @@ class SGDTrainer(GradientDescentBase):
         n_train_batches, n_val_batches = self._get_minibatches(train_set,
                                                                val_set)
         self._init_models(train_set, val_set)
-        val_freq = min(n_train_batches, self.patience/3)
+        val_freq = int(min(n_train_batches*2, self.patience/3))
         patience = self.patience
         best_val_loss = np.inf
 
         for i in range(self.max_iter):
             for batch in range(n_train_batches):
                 batch_loss = float(self.train_model(batch))
-                iteration = i * n_train_batches + batch
+                iteration = i * self.batch_size + batch
                 if self._verbose:
                     if (batch+1) % self._verbose == 0:
                         sys.stdout.write(
