@@ -9,6 +9,7 @@ import theano
 from theano import tensor as T
 
 from theano_wrapper.common import RandomBase
+from theano_wrapper.trainers import EpochTrainer, SGDTrainer
 
 
 # pylint: disable=invalid-name
@@ -162,6 +163,39 @@ class MultiLayerBase(RandomBase):
         self.params = [p for l in self.layers for p in l.params]
 
 
+class BaseEstimator:
+    trainer_aliases = {
+        'epoch': EpochTrainer,
+        'sgd': SGDTrainer}
+
+    def __init__(self):
+        self.trainer = EpochTrainer(self)
+
+    def _init_trainer(self, alias, **kwargs):
+        if alias not in self.trainer_aliases.keys():
+            # handle exception
+            raise KeyError
+        self.trainer = self.trainer_aliases[alias](self, **kwargs)
+
+    def fit(self, X, y, trainer=None, **kwargs):
+        if trainer:
+            if isinstance(trainer, str):
+                self._init_trainer(trainer, **kwargs)
+            else:
+                self.trainer = trainer
+        else:
+            if not hasattr(self, 'trainer'):
+                if X.shape[0] < 5000:
+                    self._init_trainer('epoch', **kwargs)
+                else:
+                    self._init_trainer('sgd', **kwargs)
+
+        return self.trainer.fit(X, y)
+
+    def predict(self, X):
+        return self.trainer.predict(X)
+
+
 # pylint: enable=too-many-arguments
 # ACTIVATION FUNCTIONS #######################################################
 def relu(value):
@@ -170,7 +204,7 @@ def relu(value):
 
 
 # ESTIMATORS #################################################################
-class LinearRegression(BaseLayer):
+class LinearRegression(BaseLayer, BaseEstimator):
     r""" Simple Linear Regression.
     Linear regression is a linear predictor modeling the relationship
     between a scalar dependent variable :math:`y` and one or more explanatory
@@ -203,7 +237,7 @@ class LinearRegression(BaseLayer):
         self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
 
 
-class LogisticRegression(BaseLayer):
+class LogisticRegression(BaseLayer, BaseEstimator):
     r""" Multi-class Logistic Regression.
 
     Logistic regression is a probabilistic, linear classifier. It is
@@ -270,7 +304,7 @@ class LogisticRegression(BaseLayer):
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
 
-class MultiLayerRegression(MultiLayerBase):
+class MultiLayerRegression(MultiLayerBase, BaseEstimator):
     r""" Multilayer Regression.
 
     An MLP can be viewed as a linear regression predictor where the input
@@ -322,7 +356,7 @@ class MultiLayerRegression(MultiLayerBase):
                          relu, *args, **kwargs)
 
 
-class MultiLayerPerceptron(MultiLayerBase):
+class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
     r""" Multilayer Perceptron.
 
     An MLR can be viewed as a logistic regression classifier where the input
