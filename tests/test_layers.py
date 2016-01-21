@@ -226,7 +226,7 @@ class BaseEstimatorTransformerTests:
         clf = self.Clf()
         reg = simple_reg(clf)
         try:
-            clf.fit(*self.fit_args, reg=reg)
+            clf.fit(*self.fit_args, reg=reg, max_iter=2)
         except Exception as e:
             self.fail("Fitting failed: %s" % str(e))
 
@@ -495,6 +495,14 @@ class TestAutoEncoder(unittest.TestCase, TransformerTests,
         try:
             trn = SimpleTrainer(self.transformer(*self.args,
                                                  cost='cross_entropy'))
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))
+
+    def test_denoising_mode(self):
+        try:
+            trn = SimpleTrainer(self.transformer(*self.args,
+                                                 corrupt=0.1))
             trn.fit(self.X)
         except Exception as e:
             self.fail("Training failed: %s" % str(e))

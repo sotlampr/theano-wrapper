@@ -91,12 +91,14 @@ class HiddenLayer(RandomBase, BaseLayer):
         rng: numpy RandomState generator instance
         output: (theano expression) Expression to calculate layer activation
     """
-    def __init__(self, n_in, n_out, activation=None, random=None, **kwargs):
+    def __init__(self, n_in, n_out, activation=None, random=None, corrupt=None,
+                 **kwargs):
         """ Parameters:
             n_in: (int) Number of input nodes.
             n_out: (int) Number of output nodes.
             activation (theano function) The activation function
             random: (int or numpy RandomState generator)
+            corrupt: (None or float) corruption level of input
         """
         RandomBase.__init__(self, random)
         _size = (n_in,) if n_out == 1 else (n_in, n_out)
@@ -104,6 +106,15 @@ class HiddenLayer(RandomBase, BaseLayer):
                                                high=np.sqrt(6./(n_in+n_out)),
                                                size=_size),
                              dtype=theano.config.floatX)
+        if corrupt:
+            if 'X' in kwargs.keys():
+                self.X_clean = kwargs['X']
+            else:
+                self.X_clean = T.matrix('X_clean')
+
+            X = self._srng.binomial(size=self.X_clean.shape, n=1, p=1,
+                                    dtype=theano.config.floatX) * self.X_clean
+            kwargs['X'] = X
 
         BaseLayer.__init__(self, n_in, n_out, weights=weights, **kwargs)
         if activation:
@@ -475,7 +486,7 @@ class TiedAutoEncoder(RandomBase, BaseTransformer):
 
 class AutoEncoder(RandomBase, BaseTransformer):
     def __init__(self, n_in, n_hidden, activation=None, cost=None,
-                 *args, **kwargs):
+                 corrupt=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
 
@@ -486,8 +497,12 @@ class AutoEncoder(RandomBase, BaseTransformer):
             if not isinstance(activation, list):
                 activation = [activation, activation]
             n_prev = n_hidden
-            self.layers.append(HiddenLayer(n_in, n_hidden,
-                                           activation[0], self._rng))
+            if corrupt:
+                self.layers.append(HiddenLayer(n_in, n_hidden, activation[0],
+                                               self._rng, corrupt=0.3))
+            else:
+                self.layers.append(HiddenLayer(n_in, n_hidden,
+                                               activation[0], self._rng))
         elif isinstance(n_hidden, list):
             if not isinstance(activation, list):
                 temp = activation
