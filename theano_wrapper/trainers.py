@@ -191,15 +191,11 @@ class TrainerBase(RandomBase):
 
     def predict(self, X):
         """ Predict y given X """
-        if self.__clf_type == 'transformer':
-            # handle the exception
-            raise AttributeError("Given clf is a transformer")
+        if hasattr(self, 'predict_model'):
+            return self.predict_model(X)   # pylint: disable=not-callable
         else:
-            if hasattr(self, 'predict_model'):
-                return self.predict_model(X)   # pylint: disable=not-callable
-            else:
-                # handle the exception
-                raise AttributeError("Estimator hasn't been fitted yet")
+            # handle the exception
+            raise AttributeError("Estimator hasn't been fitted yet")
 
     def transform(self, X):
         if self.__clf_type == 'estimator':
@@ -240,7 +236,7 @@ class GradientDescentBase(TrainerBase):
                    into an 80% training and an 20% validation set
         predict(X): Return estimator prediction for input X
     """
-    def __init__(self, clf, alpha=0.01, max_iter=10000, patience=5000,
+    def __init__(self, clf, alpha=0.01, max_iter=1000, patience=500,
                  p_inc=2.0, imp_thresh=0.995, *args, **kwargs):
 
         super().__init__(clf, *args, **kwargs)
@@ -333,13 +329,11 @@ class EpochTrainer(GradientDescentBase):
         if self.y is not None:
             givens_train = {self.X: train_set[0], self.y: train_set[1]}
             givens_val = {self.X: val_set[0], self.y: val_set[1]}
-            self.predict_model = theano.function(inputs=[self.X],
-                                                 outputs=self.clf.predict)
         else:
             givens_train = {self.X: train_set[0]}
             givens_val = {self.X: val_set[0]}
             self.transform_model = theano.function(inputs=[self.X],
-                                                   outputs=self.clf.transform)
+                                                   outputs=self.clf.encode)
 
         self.train_model = theano.function(
             inputs=[], outputs=self.cost, updates=self.updates,
@@ -348,6 +342,9 @@ class EpochTrainer(GradientDescentBase):
         self.val_model = theano.function(
             inputs=[], outputs=self.cost,
             givens=givens_val)
+
+        self.predict_model = theano.function(inputs=[self.X],
+                                             outputs=self.clf.output)
 
 
 class SGDTrainer(GradientDescentBase):
@@ -454,8 +451,6 @@ class SGDTrainer(GradientDescentBase):
                                    (self.index+1)*self.batch_size],
                 self.y: val_set[1][self.index*self.batch_size:
                                    (self.index+1)*self.batch_size]}
-            self.predict_model = theano.function(inputs=[self.X],
-                                                 outputs=self.clf.predict)
         else:
             givens_train = {
                 self.X: train_set[0][self.index*self.batch_size:
@@ -464,7 +459,7 @@ class SGDTrainer(GradientDescentBase):
                 self.X: val_set[0][self.index*self.batch_size:
                                    (self.index+1)*self.batch_size]}
             self.transform_model = theano.function(inputs=[self.X],
-                                                   outputs=self.clf.transform)
+                                                   outputs=self.clf.encode)
 
         self.train_model = theano.function(
             inputs=[self.index], outputs=self.cost,
@@ -473,5 +468,8 @@ class SGDTrainer(GradientDescentBase):
         self.val_model = theano.function(
             inputs=[self.index], outputs=self.cost,
             givens=givens_val)
+
+        self.predict_model = theano.function(inputs=[self.X],
+                                             outputs=self.clf.output)
 
 # pylint: enable=invalid-name

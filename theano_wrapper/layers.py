@@ -159,7 +159,7 @@ class MultiLayerBase(RandomBase):
         self.X = self.layers[0].X
         self.y = self.layers[-1].y
         self.cost = self.layers[-1].cost
-        self.predict = self.layers[-1].predict
+        self.output = self.layers[-1].output
         self.params = [p for l in self.layers for p in l.params]
 
 
@@ -191,6 +191,41 @@ class BaseEstimator:
                     self._init_trainer('sgd', **kwargs)
 
         return self.trainer.fit(X, y)
+
+    def predict(self, X):
+        return self.trainer.predict(X)
+
+
+class BaseTransformer:
+    trainer_aliases = {
+        'epoch': EpochTrainer,
+        'sgd': SGDTrainer}
+
+    def __init__(self):
+        self.trainer = EpochTrainer(self)
+
+    def _init_trainer(self, alias, **kwargs):
+        if alias not in self.trainer_aliases.keys():
+            # handle exception
+            raise KeyError
+        self.trainer = self.trainer_aliases[alias](self, **kwargs)
+
+    def fit(self, X, trainer=None, **kwargs):
+        if trainer:
+            if isinstance(trainer, str):
+                self._init_trainer(trainer, **kwargs)
+            else:
+                self.trainer = trainer
+        else:
+            if not hasattr(self, 'trainer'):
+                if X.shape[0] < 5000:
+                    self._init_trainer('epoch', **kwargs)
+                else:
+                    self._init_trainer('sgd', **kwargs)
+        return self.trainer.fit(X)
+
+    def transform(self, X):
+        return self.trainer.transform(X)
 
     def predict(self, X):
         return self.trainer.predict(X)
@@ -233,8 +268,8 @@ class LinearRegression(BaseLayer, BaseEstimator):
     def __init__(self, n_in, n_out, *args, **kwargs):
         # Initialize BaseLayer and theano symbolic functions
         super().__init__(n_in, n_out, 'float', *args, **kwargs)
-        self.predict = T.dot(self.X, self.W) + self.b
-        self.cost = T.sum(T.pow(self.predict-self.y, 2)) / (2*self.X.shape[0])
+        self.output = T.dot(self.X, self.W) + self.b
+        self.cost = T.sum(T.pow(self.output-self.y, 2)) / (2*self.X.shape[0])
 
 
 class LogisticRegression(BaseLayer, BaseEstimator):
@@ -298,7 +333,7 @@ class LogisticRegression(BaseLayer, BaseEstimator):
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
         # symbolic expression for returning the most probable class
-        self.predict = T.argmax(self.probas, axis=1)
+        self.output = T.argmax(self.probas, axis=1)
 
         self.cost = -T.mean(
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
@@ -412,7 +447,7 @@ class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
 
 
 # TRANSFORMERS ###############################################################
-class TiedAutoEncoder(RandomBase):
+class TiedAutoEncoder(RandomBase, BaseTransformer):
     def __init__(self, n_in, n_hidden, activation=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
@@ -430,15 +465,15 @@ class TiedAutoEncoder(RandomBase):
         self.params = [self.layers[0].W, self.layers[0].b, self.layers[1].b]
 
         self.X = self.layers[0].X
-        self.transform = self.layers[0].output
-        self.reconstruct = self.layers[1].output
+        self.encode = self.layers[0].output
+        self.output = self.layers[1].output
 
-        self.cost = T.mean(-T.sum(self.X * T.log(self.reconstruct) +
-                                  (1 - self.X) * T.log(1 - self.reconstruct),
+        self.cost = T.mean(-T.sum(self.X * T.log(self.output) +
+                                  (1 - self.X) * T.log(1 - self.output),
                                   axis=1))
 
 
-class AutoEncoder(RandomBase):
+class AutoEncoder(RandomBase, BaseTransformer):
     def __init__(self, n_in, n_hidden, activation=None, cost=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -474,17 +509,17 @@ class AutoEncoder(RandomBase):
         self.params = [p for l in self.layers for p in l.params]
 
         self.X = self.layers[0].X
-        self.transform = self.layers[-2].output
-        self.reconstruct = self.layers[-1].output
+        self.encode = self.layers[-2].output
+        self.output = self.layers[-1].output
 
         cost = 'squared' if cost is None else cost
 
         if isinstance(cost, str):
             if cost == 'squared':
-                self.cost = T.sum(T.pow(T.abs_(self.X - self.reconstruct), 2))
+                self.cost = T.sum(T.pow(T.abs_(self.X - self.output), 2))
             elif cost == 'cross_entropy':
                 self.cost = T.mean(-T.sum(
-                    self.X * T.log(self.reconstruct) + (1 - self.X)))
+                    self.X * T.log(self.output) + (1 - self.X)))
         else:
             self.cost = cost(self)
 # pylint: enable=invalid-name

@@ -4,8 +4,10 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from tests.helpers import SimpleTrainer, SimpleClf, simple_reg
+from tests.helpers import (SimpleTrainer, SimpleClf, SimpleTransformer,
+                           simple_reg)
 from theano_wrapper.layers import (BaseLayer, HiddenLayer, MultiLayerBase,
+                                   BaseEstimator, BaseTransformer,
                                    LinearRegression, LogisticRegression,
                                    MultiLayerPerceptron, MultiLayerRegression,
                                    TiedAutoEncoder, AutoEncoder)
@@ -198,6 +200,64 @@ class TestMultiLayerBase(unittest.TestCase):
             self.fail("Class initialization failed: %s" % str(e))
 
 
+class BaseEstimatorTransformerTests:
+    def test_has_trainers(self):
+        clf = self.Clf()
+        for t in ['epoch', 'sgd']:
+            self.assertIn(t, clf.trainer_aliases)
+
+    def test_builtin_sgd_trainer(self):
+        clf = self.Clf()
+        try:
+            clf.fit(*self.fit_args, 'sgd', max_iter=1)
+        except Exception as e:
+            self.fail("Fitting failed: %s" % str(e))
+
+    def test_builtin_sgd_trainer_all_args(self):
+        clf = self.Clf()
+        try:
+            clf.fit(*self.fit_args, 'sgd', alpha=0.1, batch_size=20,
+                    max_iter=1, patience=100, p_inc=3, imp_thresh=0.9,
+                    random=10, verbose=1000)
+        except Exception as e:
+            self.fail("Fitting failed: %s" % str(e))
+
+    def test_builtin_trainer_regularizer(self):
+        clf = self.Clf()
+        reg = simple_reg(clf)
+        try:
+            clf.fit(*self.fit_args, reg=reg)
+        except Exception as e:
+            self.fail("Fitting failed: %s" % str(e))
+
+
+class TestBaseEstimator(unittest.TestCase, BaseEstimatorTransformerTests):
+    TheBase = BaseEstimator
+    TheClf = SimpleClf
+    X = np.random.standard_normal((500, 100)).astype(np.float32)
+    y = np.random.randint(0, 9, (500,)).astype(np.int32)
+    fit_args = (X, y,)
+
+    def setUp(self):
+        class Clf(self.TheClf, self.TheBase):
+            def __init__(*args, **kwargs):
+                SimpleClf.__init__(*args, **kwargs)
+        self.Clf = Clf
+
+
+class TestBaseTransformer(unittest.TestCase, BaseEstimatorTransformerTests):
+    TheBase = BaseTransformer
+    TheClf = SimpleTransformer
+    X = np.random.standard_normal((500, 100)).astype(np.float32)
+    fit_args = (X,)
+
+    def setUp(self):
+        class Clf(self.TheClf, self.TheBase):
+            def __init__(*args, **kwargs):
+                self.TheClf.__init__(*args, **kwargs)
+        self.Clf = Clf
+
+
 # ESTIMATORS #################################################################
 class EstimatorTests:
     X = np.random.standard_normal((500, 100)).astype(np.float32)
@@ -207,9 +267,9 @@ class EstimatorTests:
         self.assertTrue(hasattr(clf, 'params'))
         self.assertIsNotNone(clf.params)
 
-    def test_estimator_has_predict(self):
+    def test_estimator_has_output(self):
         clf = self.estimator(*self.args)
-        self.assertIsInstance(clf.predict, theano.tensor.TensorVariable)
+        self.assertIsInstance(clf.output, theano.tensor.TensorVariable)
 
     def test_estimator_has_cost(self):
         clf = self.estimator(*self.args)
@@ -230,6 +290,19 @@ class EstimatorTests:
             trn.fit(self.X, self.y)
         except Exception as e:
             self.fail("Estimator failed: %s" % str(e))
+
+    def test_estimator_builtin_fit(self):
+        clf = self.estimator(*self.args)
+        try:
+            clf.fit(self.X, self.y, max_iter=1)
+        except Exception as e:
+            self.fail("Estimator failed: %s" % str(e))
+
+    def test_estimator_builtin_predict(self):
+        clf = self.estimator(*self.args)
+        clf.fit(self.X, self.y, max_iter=1)
+        pred = clf.predict(self.X)
+        self.assertEqual(pred.shape, (self.X.shape[0],))
 
 
 class MultiLayerEstimatorMixin:
@@ -312,9 +385,9 @@ class TransformerTests:
         self.assertTrue(hasattr(clf, 'params'))
         self.assertIsNotNone(clf.params)
 
-    def test_transformer_has_transform(self):
+    def test_transformer_has_encode(self):
         clf = self.transformer(*self.args)
-        self.assertIsInstance(clf.transform, theano.tensor.TensorVariable)
+        self.assertIsInstance(clf.encode, theano.tensor.TensorVariable)
 
     def test_transformer_has_cost(self):
         clf = self.transformer(*self.args)
@@ -344,6 +417,25 @@ class TransformerTests:
             trn.fit(self.X)
         except Exception as e:
             self.fail("Training failed: %s" % str(e))
+
+    def test_transformer_builtin_fit(self):
+        clf = self.transformer(*self.args)
+        try:
+            clf.fit(self.X, max_iter=1)
+        except Exception as e:
+            self.fail("Estimator failed: %s" % str(e))
+
+    def test_transformer_builtin_predict(self):
+        clf = self.transformer(*self.args)
+        clf.fit(self.X, max_iter=1)
+        pred = clf.predict(self.X)
+        self.assertEqual(pred.shape, (self.X.shape))
+
+    def test_transformer_builtin_transform(self):
+        clf = self.transformer(*self.args)
+        clf.fit(self.X, max_iter=1)
+        pred = clf.transform(self.X)
+        self.assertEqual(pred.shape, (self.X.shape[0], self.args[-1]))
 
 
 class MultiLayerTransformerMixin:
@@ -398,3 +490,11 @@ class TestAutoEncoder(unittest.TestCase, TransformerTests,
                       MultiLayerTransformerMixin):
     transformer = AutoEncoder
     args = (100, 50)
+
+    def test_cost_cross_entropy(self):
+        try:
+            trn = SimpleTrainer(self.transformer(*self.args,
+                                                 cost='cross_entropy'))
+            trn.fit(self.X)
+        except Exception as e:
+            self.fail("Training failed: %s" % str(e))

@@ -43,12 +43,12 @@ class SimpleClf:
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
         # symbolic expression for returning the most probable class
-        self.predict = T.argmax(self.probas, axis=1)
+        self.output = T.argmax(self.probas, axis=1)
 
         self.cost = -T.mean(
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
-        self.errors = T.mean(T.neq(self.predict, self.y))
+        self.errors = T.mean(T.neq(self.output, self.y))
 
 
 class SimpleTransformer:
@@ -65,12 +65,12 @@ class SimpleTransformer:
 
         self.params = [self.W, self.b, self.b_pr]
 
-        self.transform = T.nnet.sigmoid(T.dot(self.X, self.W) + self.b)
-        self.recon_out = T.nnet.sigmoid(T.dot(self.transform, self.W_pr) +
-                                        self.b_pr)
+        self.encode = T.nnet.sigmoid(T.dot(self.X, self.W) + self.b)
+        self.output = T.nnet.sigmoid(T.dot(self.encode, self.W_pr) +
+                                     self.b_pr)
 
-        self.cost = T.mean(-T.sum(self.X * T.log(self.recon_out) +
-                                  (1 - self.X) * T.log(1 - self.recon_out),
+        self.cost = T.mean(-T.sum(self.X * T.log(self.output) +
+                                  (1 - self.X) * T.log(1 - self.output),
                                   axis=1))
 
 
