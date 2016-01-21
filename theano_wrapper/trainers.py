@@ -306,7 +306,7 @@ class EpochTrainer(GradientDescentBase):
             y (numpy array): Target values, shape: (n_samples,)
         """
         self._init_models(train_set, val_set)
-        val_freq = self.patience/3
+        val_freq = int(self.patience/2)
         patience = self.patience
         best_val_loss = np.inf
 
@@ -324,7 +324,7 @@ class EpochTrainer(GradientDescentBase):
                 val_loss = float(self.val_model())
                 if val_loss < best_val_loss:
                     if val_loss < best_val_loss * self.imp_thresh:
-                        patience = max(patience, i * self.p_inc)
+                        patience = int(max(patience, i * self.p_inc))
                     best_val_loss = val_loss
             if patience <= i:
                 if self._verbose:
