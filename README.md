@@ -45,6 +45,10 @@ For a complete documentation visit the [read the docs](http://theano-wrapper.rea
     * Logistic Regression
     * Multilayer Perceptron
 
+* Unsupervised
+    * Single hidden layer tied autoencoder
+    * Denoising autoencoder
+
 * Training Classes
     * Simple epoch-based gradient descent training
     * (Minibatch) Stohastic gradient descent training
