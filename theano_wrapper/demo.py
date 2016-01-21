@@ -290,8 +290,8 @@ def mnist_epoch_logreg(__test):
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
     clf = LogisticRegression(n_in, n_out)
-    trainer = EpochTrainer(clf, alpha=0.5, patience=250, max_iter=max_iter,
-                           imp_thresh=0.986, random=RANDOM_STATE, verbose=1)
+    trainer = EpochTrainer(clf, alpha=0.9, patience=50, max_iter=max_iter,
+                           imp_thresh=0.95, random=RANDOM_STATE, verbose=1)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
@@ -312,9 +312,9 @@ def mnist_sgd_logreg(__test):
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
     clf = LogisticRegression(n_in, n_out)
-    trainer = SGDTrainer(clf, batch_size=100, alpha=0.1, patience=5000,
+    trainer = SGDTrainer(clf, batch_size=100, alpha=0.5, patience=1000,
                          max_iter=max_iter,
-                         imp_thresh=0.995, random=RANDOM_STATE, verbose=3)
+                         imp_thresh=0.99, random=RANDOM_STATE, verbose=3)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
@@ -334,8 +334,8 @@ def mnist_mlp(__test):
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = MultiLayerPerceptron(n_in, int(n_in/2), n_out)
-    trainer = SGDTrainer(clf, batch_size=10, alpha=0.1, patience=6000,
+    clf = MultiLayerPerceptron(n_in, int(n_in/8), n_out)
+    trainer = SGDTrainer(clf, batch_size=100, alpha=0.7, patience=500,
                          max_iter=max_iter,
                          imp_thresh=0.9, random=RANDOM_STATE, verbose=3)
     begin = time.time()
@@ -355,7 +355,7 @@ def epoch_linear(__test):
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
     clf = LinearRegression(n_in, 1)
-    trainer = EpochTrainer(clf, alpha=0.03, patience=50000, max_iter=max_iter,
+    trainer = EpochTrainer(clf, alpha=0.1, patience=500, max_iter=max_iter,
                            imp_thresh=1, random=RANDOM_STATE, verbose=10)
     begin = time.time()
     trainer.fit(X_train, y_train)
@@ -376,9 +376,9 @@ def sgd_linear(__test):
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
     clf = LinearRegression(n_in, 1)
-    trainer = SGDTrainer(clf, batch_size=10, alpha=0.053, patience=20000,
+    trainer = SGDTrainer(clf, batch_size=10, alpha=0.08, patience=200,
                          imp_thresh=0.999999, max_iter=max_iter,
-                         random=RANDOM_STATE, verbose=2)
+                         random=RANDOM_STATE, verbose=10)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
@@ -400,9 +400,9 @@ def linnerud_linear_sgd(__test):
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
     clf = LinearRegression(n_in, n_out)
-    trainer = SGDTrainer(clf, batch_size=1, alpha=0.001, patience=20000,
-                         imp_thresh=0.999, max_iter=max_iter,
-                         random=RANDOM_STATE, verbose=1)
+    trainer = SGDTrainer(clf, batch_size=3, alpha=0.0005, patience=100,
+                         imp_thresh=1, max_iter=max_iter,
+                         random=RANDOM_STATE, verbose=3)
     begin = time.time()
     trainer.fit(X_train, y_train)
     y_pred = trainer.predict(X_test)
@@ -423,8 +423,8 @@ def linnerud_mlr(__test):
     X_train, X_test, y_train, y_test = load_linnerud_data()
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
-    clf = MultiLayerRegression(n_in, 3, n_out)
-    trainer = SGDTrainer(clf, batch_size=1, alpha=0.01, patience=20000,
+    clf = MultiLayerRegression(n_in, 10, n_out)
+    trainer = SGDTrainer(clf, batch_size=1, alpha=0.01, patience=1000,
                          imp_thresh=0.99999, max_iter=max_iter,
                          random=RANDOM_STATE, verbose=1)
     begin = time.time()
