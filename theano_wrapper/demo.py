@@ -330,7 +330,7 @@ def mnist_mlp(__test):
     print("Classification demo using a Multilayer Perceptron and Stohastic "
           "Gradient Descent on the MNIST digits dataset.")
     print(EQ_BAR)
-    max_iter = 2 if __test else 100000
+    max_iter = 1 if __test else 100000
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
