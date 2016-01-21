@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import theano
 
 from theano_wrapper.common import RandomBase
 
@@ -44,3 +45,9 @@ class TestCommon(unittest.TestCase):
         rng = np.random.RandomState(42)
         tester = Dummy(rng)
         self.assertEqual(tester._rng, rng)
+
+    def test_theano_rng(self):
+        Dummy = self.get_random_base_dummy_class()
+        tester = Dummy()
+        self.assertIsInstance(tester._srng,
+                              theano.sandbox.rng_mrg.MRG_RandomStreams)

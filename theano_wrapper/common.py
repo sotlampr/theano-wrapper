@@ -4,6 +4,7 @@ Classes
 """
 
 import numpy as np
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 
 # pylint: disable=too-few-public-methods
@@ -30,11 +31,15 @@ class RandomBase:
     def __init__(self, random=None):
         if random is None or random is np.random:
             self._rng = np.random
+            self._srng = RandomStreams()
         else:
             if isinstance(random, int):
                 self._rng = np.random.RandomState(random)
+                self._srng = RandomStreams(seed=random)
             elif isinstance(random, np.random.RandomState):
                 self._rng = random
+                self._srng = RandomStreams(
+                    seed=int(random.__getstate__()[1][0]))
             else:
                 # handle the exception
                 raise TypeError
