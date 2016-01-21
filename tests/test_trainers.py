@@ -5,6 +5,8 @@ import unittest
 import numpy as np
 import theano
 
+from sklearn.preprocessing import StandardScaler
+
 from theano_wrapper.trainers import (TrainerBase, l1_l2_reg,
                                      EpochTrainer, SGDTrainer)
 from tests.helpers import SimpleClf, SimpleTransformer
@@ -130,6 +132,15 @@ class BaseTrainerTest(unittest.TestCase):
         reg = l1_l2_reg(clf, 0.01, 0.01)
         try:
             etrain = self.trainer(clf, reg=reg, max_iter=10)
+            etrain.fit(self.X, self.y)
+        except Exception as e:
+            self.fail("Trainer failed: %s" % str(e))
+
+    def test_train_with_preprocessing(self):
+        clf = SimpleClf()
+        pre = StandardScaler()
+        try:
+            etrain = self.trainer(clf, preprocessor=pre, max_iter=10)
             etrain.fit(self.X, self.y)
         except Exception as e:
             self.fail("Trainer failed: %s" % str(e))

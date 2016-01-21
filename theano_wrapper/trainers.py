@@ -94,7 +94,8 @@ class TrainerBase(RandomBase):
                                         Returns: [(X_train, y_train),
                                                   (X_test, y_test)]
     """
-    def __init__(self, clf, reg=None, verbose=None, random=None):
+    def __init__(self, clf, reg=None, preprocessor=None,
+                 verbose=None, random=None):
         """Arguements:
         clf: (class) Classifier or Regressor class
         verbose: (int) The verbosity factor. 0 = off
@@ -114,7 +115,11 @@ class TrainerBase(RandomBase):
             self.y = None
             self.__clf_type = 'transformer'
 
+        self.pre = preprocessor if preprocessor else None
+
     def fit(self, X, y=None):
+        if self.pre:
+            X = self.pre.fit_transform(X)
         if y is None:
             self._fit_transformer(X)
         else:
@@ -192,7 +197,9 @@ class TrainerBase(RandomBase):
     def predict(self, X):
         """ Predict y given X """
         if hasattr(self, 'predict_model'):
-            return self.predict_model(X)   # pylint: disable=not-callable
+            if self.pre:
+                X = self.pre.transform(X)
+            return self.predict_model(X)
         else:
             # handle the exception
             raise AttributeError("Estimator hasn't been fitted yet")
@@ -203,7 +210,9 @@ class TrainerBase(RandomBase):
             raise AttributeError("Given clf is an estimator")
         else:
             if hasattr(self, 'transform_model'):
-                return self.transform_model(X)   # pylint: disable=not-callable
+                if self.pre:
+                    X = self.pre.transform(X)
+                return self.transform_model(X)
             else:
                 # handle the exception
                 raise AttributeError("Transformer hasn't been fitted yet")
@@ -397,20 +406,20 @@ class SGDTrainer(GradientDescentBase):
         n_train_batches, n_val_batches = self._get_minibatches(train_set,
                                                                val_set)
         self._init_models(train_set, val_set)
-        val_freq = int(min(n_train_batches*2, self.patience/3))
+        val_freq = int(min(n_train_batches*2, self.patience/2))
         patience = self.patience
         best_val_loss = np.inf
 
         for i in range(self.max_iter):
             for batch in range(n_train_batches):
                 batch_loss = float(self.train_model(batch))
-                iteration = i * self.batch_size + batch
+                iteration = (i * n_train_batches) + batch
                 if self._verbose:
                     if (batch+1) % self._verbose == 0:
                         sys.stdout.write(
                             "Epoch {:4d}, minibatch {:4d}/{:4d}, "
                             "test loss: {:8.3f}, best_val_loss:{:7.3f} "
-                            "{:6d} more samples to go\r".format(
+                            "{:6d} more batches to go\r".format(
                                 (i+1), (batch+1), n_train_batches,
                                 batch_loss, best_val_loss,
                                 int(patience-iteration)))
@@ -420,7 +429,8 @@ class SGDTrainer(GradientDescentBase):
                                         for b in range(n_val_batches)])
                     if val_loss < best_val_loss:
                         if val_loss < best_val_loss * self.imp_thresh:
-                            patience = max(patience, iteration * self.p_inc)
+                            patience = int(max(patience,
+                                               iteration * self.p_inc))
                         best_val_loss = val_loss
 
                 if patience <= iteration:

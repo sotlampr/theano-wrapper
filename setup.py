@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='theano_wrapper',
-      version='0.0a',
+      version='0.0b0',
       description='Utilities for machine learning applications with theano',
       url='https://github.com/sotlampr/theano-wrapper',
       author='Sotiris Lamprinidis',
