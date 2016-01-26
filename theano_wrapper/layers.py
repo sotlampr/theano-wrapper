@@ -34,7 +34,7 @@ class BaseLayer:
         b (theano arr(n_out,)): Bias vector
         params (list(W, b)): List containing the layer parameters W and b
     """
-    def __init__(self, n_in, n_out, y=None, X=None, weights=None, bias=None):
+    def __init__(self, shape, y=None, X=None, weights=None, bias=None):
         """Arguements:
             n_in (int): Number of input nodes
             n_out (int): Number of output nodes
@@ -49,32 +49,32 @@ class BaseLayer:
             if y == 'int':
                 self.y = T.ivector('y')
             elif y == 'float':
-                self.y = T.fvector('y') if n_out == 1 else T.fmatrix('y')
+                self.y = T.fvector('y') if shape[1] == 1 else T.fmatrix('y')
             else:
                 # Handle the exception
                 raise ValueError
         else:
             self.y = y
 
-        _weights, _bias = self.__init_weights_bias(weights, bias, n_in, n_out)
+        _weights, _bias = self.__init_weights_bias(weights, bias, shape)
 
         self.W = theano.shared(_weights, name='W')
         self.b = theano.shared(_bias, name='b')
         self.params = [self.W, self.b]
 
     @staticmethod
-    def __init_weights_bias(weights, bias, n_in, n_out):
+    def __init_weights_bias(weights, bias, shape):
         # Weights and bias initialization
-        if n_out == 1:
+        if shape[1] == 1:
             if weights is None:
-                weights = np.zeros((n_in), dtype=theano.config.floatX)
+                weights = np.zeros((shape[0]), dtype=theano.config.floatX)
             if bias is None:
                 bias = .0
         else:
             if weights is None:
-                weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
+                weights = np.zeros((shape), dtype=theano.config.floatX)
             if bias is None:
-                bias = np.zeros(n_out, dtype=theano.config.floatX)
+                bias = np.zeros(shape[1], dtype=theano.config.floatX)
 
         return weights, bias
 
@@ -116,7 +116,8 @@ class HiddenLayer(RandomBase, BaseLayer):
                                     dtype=theano.config.floatX) * self.X_clean
             kwargs['X'] = X
 
-        BaseLayer.__init__(self, n_in, n_out, weights=weights, **kwargs)
+        shape = [n_in, n_out]    # For refactoring purposes
+        BaseLayer.__init__(self, shape, weights=weights, **kwargs)
         if activation:
             self.activation = activation
         else:
@@ -278,7 +279,8 @@ class LinearRegression(BaseLayer, BaseEstimator):
     """
     def __init__(self, n_in, n_out, *args, **kwargs):
         # Initialize BaseLayer and theano symbolic functions
-        super().__init__(n_in, n_out, 'float', *args, **kwargs)
+        shape = [n_in, n_out]    # For refactoring purposes
+        super().__init__(shape, 'float', *args, **kwargs)
         self.output = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.output-self.y, 2)) / (2*self.X.shape[0])
 
@@ -339,7 +341,8 @@ class LogisticRegression(BaseLayer, BaseEstimator):
             erros: Return count of errors
         """
         # Initialize BaseLayer
-        super().__init__(n_in, n_out, 'int', *args, **kwargs)
+        shape = [n_in, n_out]    # For refactoring purposes
+        super().__init__(shape, 'int', *args, **kwargs)
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
