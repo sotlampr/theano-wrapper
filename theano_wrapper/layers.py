@@ -91,7 +91,7 @@ class HiddenLayer(RandomBase, BaseLayer):
         rng: numpy RandomState generator instance
         output: (theano expression) Expression to calculate layer activation
     """
-    def __init__(self, n_in, n_out, activation=None, random=None, corrupt=None,
+    def __init__(self, shape, activation=None, random=None, corrupt=None,
                  **kwargs):
         """ Parameters:
             n_in: (int) Number of input nodes.
@@ -101,9 +101,9 @@ class HiddenLayer(RandomBase, BaseLayer):
             corrupt: (None or float) corruption level of input
         """
         RandomBase.__init__(self, random)
-        _size = (n_in,) if n_out == 1 else (n_in, n_out)
-        weights = np.asarray(self._rng.uniform(low=-np.sqrt(6./(n_in+n_out)),
-                                               high=np.sqrt(6./(n_in+n_out)),
+        _size = (shape[0],) if shape[1] == 1 else (shape)
+        weights = np.asarray(self._rng.uniform(low=-np.sqrt(6./(sum(shape))),
+                                               high=np.sqrt(6./(sum(shape))),
                                                size=_size),
                              dtype=theano.config.floatX)
         if corrupt:
@@ -116,7 +116,6 @@ class HiddenLayer(RandomBase, BaseLayer):
                                     dtype=theano.config.floatX) * self.X_clean
             kwargs['X'] = X
 
-        shape = [n_in, n_out]    # For refactoring purposes
         BaseLayer.__init__(self, shape, weights=weights, **kwargs)
         if activation:
             self.activation = activation
@@ -150,20 +149,20 @@ class MultiLayerBase(RandomBase):
                 # handle the exception
                 raise TypeError
             n_prev = n_hidden
-            self.layers.append(HiddenLayer(n_in, n_hidden,
+            self.layers.append(HiddenLayer([n_in, n_hidden],
                                            activation, self._rng))
         elif isinstance(n_hidden, list):
             if not isinstance(activation, list):
                 temp = activation
                 activation = [temp for i in range(len(n_hidden))]
-            self.layers.append(HiddenLayer(n_in, n_hidden[0],
+            self.layers.append(HiddenLayer([n_in, n_hidden[0]],
                                            activation[0], self._rng))
             n_prev = n_hidden[0]
             for i, n_layer in enumerate(n_hidden):
                 if i == 0:
                     continue
-                self.layers.append(HiddenLayer(n_prev, n_layer, activation[i],
-                                               self._rng,
+                self.layers.append(HiddenLayer([n_prev, n_layer],
+                                               activation[i], self._rng,
                                                X=self.layers[i-1].output))
                 n_prev = n_layer
         self.layers.append(out_layer(n_prev, n_out, self.layers[-1].output))
@@ -470,10 +469,10 @@ class TiedAutoEncoder(RandomBase, BaseTransformer):
 
         if isinstance(n_hidden, float):
             n_hidden = int(n_in * n_hidden)
-        self.layers.append(HiddenLayer(n_in, n_hidden,
+        self.layers.append(HiddenLayer([n_in, n_hidden],
                                        activation, self._rng))
 
-        self.layers.append(HiddenLayer(n_hidden, n_in, activation, self._rng,
+        self.layers.append(HiddenLayer([n_hidden, n_in], activation, self._rng,
                                        X=self.layers[0].output))
         self.layers[1].W = self.layers[0].W.T
         self.params = [self.layers[0].W, self.layers[0].b, self.layers[1].b]
@@ -501,27 +500,27 @@ class AutoEncoder(RandomBase, BaseTransformer):
                 activation = [activation, activation]
             n_prev = n_hidden
             if corrupt:
-                self.layers.append(HiddenLayer(n_in, n_hidden, activation[0],
+                self.layers.append(HiddenLayer([n_in, n_hidden], activation[0],
                                                self._rng, corrupt=0.3))
             else:
-                self.layers.append(HiddenLayer(n_in, n_hidden,
+                self.layers.append(HiddenLayer([n_in, n_hidden],
                                                activation[0], self._rng))
         elif isinstance(n_hidden, list):
             if not isinstance(activation, list):
                 temp = activation
                 activation = [temp for i in range(len(n_hidden)+1)]
-            self.layers.append(HiddenLayer(n_in, n_hidden[0],
+            self.layers.append(HiddenLayer([n_in, n_hidden[0]],
                                            activation[0], self._rng))
             n_prev = n_hidden[0]
             for i, n_layer in enumerate(n_hidden):
                 if i == 0:
                     continue
-                self.layers.append(HiddenLayer(n_prev, n_layer, activation[i],
-                                               self._rng,
+                self.layers.append(HiddenLayer([n_prev, n_layer],
+                                               activation[i], self._rng,
                                                X=self.layers[i-1].output))
                 n_prev = n_layer
 
-        self.layers.append(HiddenLayer(n_prev, n_in, activation[-1],
+        self.layers.append(HiddenLayer([n_prev, n_in], activation[-1],
                                        X=self.layers[-1].output))
 
         self.params = [p for l in self.layers for p in l.params]

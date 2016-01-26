@@ -93,63 +93,63 @@ class TestHiddenLayer(unittest.TestCase):
     This class is used only by other classes, so mostly basic stuff here.
     """
     def test_hidden_layer_has_params(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertTrue(hasattr(base, 'params'),
                         msg="Class has no attribute 'parameters'")
 
     def test_hidden_layer_params_not_empty(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertTrue(base.params, msg="Class 'parameters' are empty")
 
     def test_hidden_layer_no_args(self):
         # Test if HiddenLayer initializes as expected when given no
         # extra arguements
         try:
-            HiddenLayer(100, 10)
+            HiddenLayer([100, 10])
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
     def test_hidden_layer_params_are_theano_shared_variables(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         for p in base.params:
             self.assertIsInstance(p, theano.compile.SharedVariable)
 
     def test_hidden_layer_has_input(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertTrue(hasattr(base, 'X'))
 
     def test_hidden_layer_input_is_theano_variable(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertIsInstance(base.X, theano.tensor.TensorVariable)
 
     def test_hidden_layer_weights_shape(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertEqual(base.W.get_value().shape, (100, 10))
 
     def test_hidden_layer_bias_shape(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertEqual(base.b.get_value().shape, (10,))
 
     def test_hidden_layer_weights_shape_single_output(self):
-        base = HiddenLayer(100, 1)
+        base = HiddenLayer([100, 1])
         self.assertEqual(base.W.get_value().shape, (100,))
 
     def test_hidden_layer_bias_shape_single_output(self):
-        base = HiddenLayer(100, 1)
+        base = HiddenLayer([100, 1])
         self.assertEqual(base.b.get_value().shape, ())
 
     def test_hidden_layer_no_output(self):
-        base = HiddenLayer(100, 10)
+        base = HiddenLayer([100, 10])
         self.assertFalse(hasattr(base, 'y'))
 
     def test_hidden_layer_int_output(self):
-        base = HiddenLayer(100, 10, y='int')
+        base = HiddenLayer([100, 10], y='int')
         self.assertTrue(hasattr(base, 'y'))
         self.assertTrue(hasattr(base.y, 'dtype'))
         self.assertEqual(base.y.dtype, 'int32')
 
     def test_hidden_layer_float_output(self):
-        base = HiddenLayer(100, 10, y='float')
+        base = HiddenLayer([100, 10], y='float')
         self.assertTrue(hasattr(base, 'y'))
         self.assertTrue(hasattr(base.y, 'dtype'))
         self.assertEqual(base.y.dtype, 'float32')
