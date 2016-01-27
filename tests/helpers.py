@@ -29,11 +29,11 @@ class SimpleClf:
         errors: Number of wrongly predicted samples
 
     """
-    def __init__(self, n_in=100, n_out=10, X=None):
+    def __init__(self, shape=(100, 10), X=None):
         self.X = T.matrix('X') if X is None else X
         self.y = T.ivector('y')
-        _weights = np.zeros((n_in, n_out), dtype=theano.config.floatX)
-        _bias = np.zeros(n_out,)
+        _weights = np.zeros(shape, dtype=theano.config.floatX)
+        _bias = np.zeros(shape[1],)
 
         self.W = theano.shared(_weights, name='W')
         self.b = theano.shared(_bias, name='b')
@@ -52,11 +52,11 @@ class SimpleClf:
 
 
 class SimpleTransformer:
-    def __init__(self, n_in=100, n_hidden=50):
+    def __init__(self, shape=(100, 50)):
         self.X = T.matrix('X')
-        _weights = np.zeros((n_in, n_hidden), dtype=theano.config.floatX)
-        _bias_vis = np.zeros(n_in, dtype=theano.config.floatX)
-        _bias_hid = np.zeros(n_hidden, dtype=theano.config.floatX)
+        _weights = np.zeros(shape, dtype=theano.config.floatX)
+        _bias_vis = np.zeros(shape[0], dtype=theano.config.floatX)
+        _bias_hid = np.zeros(shape[1], dtype=theano.config.floatX)
 
         self.W = theano.shared(value=_weights, name='W')
         self.b = theano.shared(_bias_hid, name='b')

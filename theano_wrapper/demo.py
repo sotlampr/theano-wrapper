@@ -334,7 +334,7 @@ def mnist_mlp(__test):
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = MultiLayerPerceptron(n_in, int(n_in/8), n_out)
+    clf = MultiLayerPerceptron([n_in, int(n_in/8), n_out])
     trainer = SGDTrainer(clf, batch_size=100, alpha=0.7, patience=500,
                          max_iter=max_iter,
                          imp_thresh=0.9, random=RANDOM_STATE, verbose=3)
@@ -423,7 +423,7 @@ def linnerud_mlr(__test):
     X_train, X_test, y_train, y_test = load_linnerud_data()
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
-    clf = MultiLayerRegression(n_in, 10, n_out)
+    clf = MultiLayerRegression([n_in, 10, n_out])
     trainer = SGDTrainer(clf, batch_size=1, alpha=0.01, patience=1000,
                          imp_thresh=0.99999, max_iter=max_iter,
                          random=RANDOM_STATE, verbose=1)

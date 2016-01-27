@@ -274,10 +274,12 @@ class EstimatorTests:
 
 
 class MultiLayerEstimatorMixin:
-    def test_estimator_fit_three_hidden_single_activation(self):
+    def test_estimator_fit_three_hidden(self):
         args = list(self.args)
         # set n_hidden arg to an array of n_nodes for three layers
-        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
+        last = args[0].pop()
+        args[0].extend([30, 20])
+        args[0].append(last)
         trn = SimpleTrainer(self.estimator(*args))
         try:
             trn.fit(self.X, self.y)
@@ -326,25 +328,29 @@ class RegressionTest(EstimatorTests):
 
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
-    estimator = LinearRegression
-    args = ([100, 1],)
+    def setUp(self):
+        self.estimator = LinearRegression
+        self.args = ([100, 1],)
 
 
 class TestLogisticRegression(unittest.TestCase, ClassificationTest):
-    estimator = LogisticRegression
-    args = ([100, 10],)
+    def setUp(self):
+        self.estimator = LogisticRegression
+        self.args = ([100, 10],)
 
 
 class TestMultiLayerPerceptron(unittest.TestCase,
                                ClassificationTest, MultiLayerEstimatorMixin):
-    estimator = MultiLayerPerceptron
-    args = (100, 100, 10)
+    def setUp(self):
+        self.estimator = MultiLayerPerceptron
+        self.args = ([100, 100, 10],)
 
 
 class TestMultiLayerRegression(unittest.TestCase,
                                RegressionTest, MultiLayerEstimatorMixin):
-    estimator = MultiLayerRegression
-    args = (100, 100, 1)
+    def setUp(self):
+        self.estimator = MultiLayerRegression
+        self.args = ([100, 100, 1],)
 
 
 # TRANSFORMERS ###############################################################
@@ -382,7 +388,7 @@ class TransformerTests:
 
     def test_transfomer_float_n_hidden(self):
         args = list(self.args)
-        args[-1] = 0.5
+        args[0][-1] = 0.5
         trn = SimpleTrainer(self.transformer(*args))
         try:
             trn.fit(self.X)
@@ -406,14 +412,16 @@ class TransformerTests:
         clf = self.transformer(*self.args)
         clf.fit(self.X, max_iter=1)
         pred = clf.transform(self.X)
-        self.assertEqual(pred.shape, (self.X.shape[0], self.args[-1]))
+        self.assertEqual(pred.shape, (self.X.shape[0], self.args[0][-1]))
 
 
 class MultiLayerTransformerMixin:
     def test_transformer_fit_three_hidden_single_activation(self):
         args = list(self.args)
         # set n_hidden arg to an array of n_nodes for three layers
-        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
+        last = args[0].pop()
+        args[0].extend([30, 20])
+        args[0].append(last)
         trn = SimpleTrainer(self.transformer(*args))
         try:
             trn.fit(self.X)
@@ -423,9 +431,10 @@ class MultiLayerTransformerMixin:
     def test_transformer_fit_three_hidden_all_activations(self):
         args = list(self.args)
         # set n_hidden arg to an array of n_nodes for three layers
-        args[1] = [args[0], int(args[0]/2), int(args[0]/3)]
-        activation = [T.nnet.sigmoid, T.nnet.softplus, T.nnet.softmax,
-                      T.nnet.sigmoid]
+        last = args[0].pop()
+        args[0].extend([30, 20])
+        args[0].append(last)
+        activation = [T.nnet.sigmoid, T.nnet.softplus, T.nnet.softmax]
         trn = SimpleTrainer(self.transformer(*args, activation))
         try:
             trn.fit(self.X)
@@ -453,14 +462,16 @@ class MultiLayerTransformerMixin:
 
 
 class TestTiedAutoEncoder(unittest.TestCase, TransformerTests):
-    transformer = TiedAutoEncoder
-    args = (100, 50)
+    def setUp(self):
+        self.transformer = TiedAutoEncoder
+        self.args = ([100, 50],)
 
 
 class TestAutoEncoder(unittest.TestCase, TransformerTests,
                       MultiLayerTransformerMixin):
-    transformer = AutoEncoder
-    args = (100, 50)
+    def setUp(self):
+        self.transformer = AutoEncoder
+        self.args = ([100, 50],)
 
     def test_cost_cross_entropy(self):
         try:

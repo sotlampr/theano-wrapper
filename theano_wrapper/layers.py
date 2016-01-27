@@ -129,34 +129,6 @@ class MultiLayerBase(RandomBase):
     def __init__(self, shape, out_layer, activation=None, random=None):
         super().__init__(random)
         self.layers = make_layers(shape, activation, random)
-        self.layers.append(out_layer(*shape[-2:],
-                                     X=self.layers[-1].output))
-
-        self.X = self.layers[0].X
-        self.y = self.layers[-1].y
-        self.cost = self.layers[-1].cost
-        self.output = self.layers[-1].output
-        self.params = [p for l in self.layers for p in l.params]
-
-
-class MultiLayerBaseCopy(RandomBase):
-    """ A Multi layer network
-
-    Attrs:
-        n_in (int): number of input nodes
-        n_hidden (int or list(int)): if int: a single layer network of n_hidden
-            nodes. If list: a multi layer network consisting of
-            m = len(n_hidden) layers and nodes for each layer given
-            by n_hidden[m]
-        n_out (int): number of output layers
-        out_layer (estimator class): type of the final layer
-        activation (function or list of functions): In accordance with
-            n_hidden. If network is single layer must be a function, if multi
-            layer can be either a function or a list of functions.
-    """
-    def __init__(self, shape, out_layer, activation=None, random=None):
-        super().__init__(random)
-        self.layers = make_layers(shape, activation, random)
         self.layers.append(out_layer(shape[-2:],
                                      X=self.layers[-1].output))
 
@@ -165,6 +137,14 @@ class MultiLayerBaseCopy(RandomBase):
         self.cost = self.layers[-1].cost
         self.output = self.layers[-1].output
         self.params = [p for l in self.layers for p in l.params]
+
+
+def shape_float_to_int(shape):
+    # Convert float percentages to integer values
+    for i in range(1, len(shape)-1):
+        if isinstance(shape[i], float):
+            shape[i] = int(shape[i-1] * shape[i])
+    return shape
 
 
 def make_layers(shape, activation=None, random=None, corrupt=None):
@@ -396,7 +376,7 @@ class LogisticRegression(ClassifierBase, BaseEstimator):
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
 
-class MultiLayerRegression(MultiLayerBaseCopy, BaseEstimator):
+class MultiLayerRegression(MultiLayerBase, BaseEstimator):
     r""" Multilayer Regression.
 
     An MLP can be viewed as a linear regression predictor where the input
@@ -440,15 +420,14 @@ class MultiLayerRegression(MultiLayerBaseCopy, BaseEstimator):
         predict (theano expression): Return the most probable class
             (the probability function as described above).
         cost (theano expression): Negative log-likelihood from
-            LogisticRegression.
+            LinearRegression.
     """
-    def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        shape = dirty_helper(n_in, n_hidden, n_out)
+    def __init__(self, shape, *args, **kwargs):
         super().__init__(shape, LinearRegression,
                          relu, *args, **kwargs)
 
 
-class MultiLayerPerceptron(MultiLayerBaseCopy, BaseEstimator):
+class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
     r""" Multilayer Perceptron.
 
     An MLR can be viewed as a logistic regression classifier where the input
@@ -498,26 +477,22 @@ class MultiLayerPerceptron(MultiLayerBaseCopy, BaseEstimator):
         cost (theano expression): Negative log-likelihood from
             LogisticRegression.
     """
-    def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        shape = dirty_helper(n_in, n_hidden, n_out)
+    def __init__(self, shape, *args, **kwargs):
         super().__init__(shape, LogisticRegression,
                          T.tanh, *args, **kwargs)
 
 
 # TRANSFORMERS ###############################################################
 class TiedAutoEncoder(RandomBase, BaseTransformer):
-    def __init__(self, n_in, n_hidden, activation=None, *args, **kwargs):
+    def __init__(self, shape, activation=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
 
-        shape = [n_in, n_hidden]
+        shape = shape_float_to_int(shape[:])
 
         self.layers = []
 
-        if isinstance(n_hidden, float):
-            n_hidden = int(n_in * n_hidden)
-        self.layers.append(HiddenLayer(shape,
-                                       activation, self._rng))
+        self.layers.append(HiddenLayer(shape, activation, self._rng))
 
         self.layers.append(HiddenLayer(shape[::-1], activation, self._rng,
                                        X=self.layers[0].output))
@@ -534,12 +509,14 @@ class TiedAutoEncoder(RandomBase, BaseTransformer):
 
 
 class AutoEncoder(RandomBase, BaseTransformer):
-    def __init__(self, n_in, n_hidden, activation=None, cost=None,
+    def __init__(self, shape, activation=None, cost=None,
                  corrupt=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
-        shape = dirty_helper(n_in, n_hidden)
+
+        shape = shape[:]
         shape.append(shape[0])
+        shape = shape_float_to_int(shape)
         self.layers = make_layers(shape, activation, self._rng, corrupt)
         if isinstance(activation, list):
             activation = activation[-1]
