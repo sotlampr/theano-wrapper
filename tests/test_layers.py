@@ -65,22 +65,6 @@ class TestBaseLayer(unittest.TestCase):
         base = BaseLayer([100, 1])
         self.assertEqual(base.b.get_value().shape, ())
 
-    def test_base_layer_no_output(self):
-        base = BaseLayer([100, 10])
-        self.assertFalse(hasattr(base, 'y'))
-
-    def test_base_layer_int_output(self):
-        base = BaseLayer([100, 10], y='int')
-        self.assertTrue(hasattr(base, 'y'))
-        self.assertTrue(hasattr(base.y, 'dtype'))
-        self.assertEqual(base.y.dtype, 'int32')
-
-    def test_base_layer_float_output(self):
-        base = BaseLayer([100, 10], y='float')
-        self.assertTrue(hasattr(base, 'y'))
-        self.assertTrue(hasattr(base.y, 'dtype'))
-        self.assertEqual(base.y.dtype, 'float32')
-
     def test_base_layer_custom_weights(self):
         try:
             BaseLayer([100, 10], weights=np.random.random_sample((100, 10)))
@@ -137,22 +121,6 @@ class TestHiddenLayer(unittest.TestCase):
     def test_hidden_layer_bias_shape_single_output(self):
         base = HiddenLayer([100, 1])
         self.assertEqual(base.b.get_value().shape, ())
-
-    def test_hidden_layer_no_output(self):
-        base = HiddenLayer([100, 10])
-        self.assertFalse(hasattr(base, 'y'))
-
-    def test_hidden_layer_int_output(self):
-        base = HiddenLayer([100, 10], y='int')
-        self.assertTrue(hasattr(base, 'y'))
-        self.assertTrue(hasattr(base.y, 'dtype'))
-        self.assertEqual(base.y.dtype, 'int32')
-
-    def test_hidden_layer_float_output(self):
-        base = HiddenLayer([100, 10], y='float')
-        self.assertTrue(hasattr(base, 'y'))
-        self.assertTrue(hasattr(base.y, 'dtype'))
-        self.assertEqual(base.y.dtype, 'float32')
 
 
 class TestMultiLayerBase(unittest.TestCase):

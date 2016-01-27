@@ -34,27 +34,13 @@ class BaseLayer:
         b (theano arr(n_out,)): Bias vector
         params (list(W, b)): List containing the layer parameters W and b
     """
-    def __init__(self, shape, y=None, X=None, weights=None, bias=None):
+    def __init__(self, shape, X=None, weights=None, bias=None):
         """Arguements:
             n_in (int): Number of input nodes
             n_out (int): Number of output nodes
             y (str, 'int' or 'float'): Type of prediction vector (optional)
         """
         self.X = T.matrix('X') if X is None else X
-
-        if y is None:
-            # This is a hidden layer, no output vector
-            pass
-        elif isinstance(y, str):
-            if y == 'int':
-                self.y = T.ivector('y')
-            elif y == 'float':
-                self.y = T.fvector('y') if shape[1] == 1 else T.fmatrix('y')
-            else:
-                # Handle the exception
-                raise ValueError
-        else:
-            self.y = y
 
         _weights, _bias = self.__init_weights_bias(weights, bias, shape)
 
