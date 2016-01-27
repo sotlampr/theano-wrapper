@@ -140,32 +140,34 @@ class MultiLayerBase(RandomBase):
             n_hidden. If network is single layer must be a function, if multi
             layer can be either a function or a list of functions.
     """
-    def __init__(self, n_in, n_hidden, n_out, out_layer, activation=None,
-                 *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, shape, out_layer, activation=None, random=None):
+        super().__init__(random)
         self.layers = []
-        if isinstance(n_hidden, int):
+        if len(shape) == 2:
+            # This is a single-layer network
+            if activation is not None:
+                raise TypeError("Cannot initialize single-layer network with "
+                                "some kind of activation.")
+
+        elif len(shape) == 3:
+            # Network with a single hidden layer
             if isinstance(activation, list):
-                # handle the exception
-                raise TypeError
-            n_prev = n_hidden
-            self.layers.append(HiddenLayer([n_in, n_hidden],
-                                           activation, self._rng))
-        elif isinstance(n_hidden, list):
+                raise TypeError("Cannot initialize single hidden layer "
+                                "network with multiple activations.")
+            self.layers.append(HiddenLayer(shape[:2], activation, self._rng))
+
+        elif len(shape) >= 4:
             if not isinstance(activation, list):
-                temp = activation
-                activation = [temp for i in range(len(n_hidden))]
-            self.layers.append(HiddenLayer([n_in, n_hidden[0]],
-                                           activation[0], self._rng))
-            n_prev = n_hidden[0]
-            for i, n_layer in enumerate(n_hidden):
-                if i == 0:
-                    continue
-                self.layers.append(HiddenLayer([n_prev, n_layer],
-                                               activation[i], self._rng,
-                                               X=self.layers[i-1].output))
-                n_prev = n_layer
-        self.layers.append(out_layer(n_prev, n_out, self.layers[-1].output))
+                activations = [activation for i in range(len(shape)-2)]
+            else:
+                activations = activation
+            for i in range(len(shape) - 2):
+                X = None if i == 0 else self.layers[i-1].output
+                self.layers.append(HiddenLayer(shape[i:i+2], activations[i],
+                                               self._rng, X=X))
+
+        self.layers.append(out_layer(*shape[-2:],
+                                     X=self.layers[-1].output))
 
         self.X = self.layers[0].X
         self.y = self.layers[-1].y
@@ -249,8 +251,20 @@ def relu(value):
     return theano.tensor.switch(value < 0, 0, value)
 
 
-# ESTIMATORS #################################################################
-class LinearRegression(BaseLayer, BaseEstimator):
+# ESTIMATOR LAYERS ###########################################################
+class ClassifierBase(BaseLayer):
+    def __init__(self, shape, *args, **kwargs):
+        super().__init__(shape, *args, **kwargs)
+        self.y = T.ivector('y')
+
+
+class RegressorBase(BaseLayer):
+    def __init__(self, shape, *args, **kwargs):
+        super().__init__(shape, *args, **kwargs)
+        self.y = T.fvector('y') if shape[1] == 1 else T.fmatrix('y')
+
+
+class LinearRegression(RegressorBase, BaseEstimator):
     r""" Simple Linear Regression.
     Linear regression is a linear predictor modeling the relationship
     between a scalar dependent variable :math:`y` and one or more explanatory
@@ -279,12 +293,12 @@ class LinearRegression(BaseLayer, BaseEstimator):
     def __init__(self, n_in, n_out, *args, **kwargs):
         # Initialize BaseLayer and theano symbolic functions
         shape = [n_in, n_out]    # For refactoring purposes
-        super().__init__(shape, 'float', *args, **kwargs)
+        super().__init__(shape, *args, **kwargs)
         self.output = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.output-self.y, 2)) / (2*self.X.shape[0])
 
 
-class LogisticRegression(BaseLayer, BaseEstimator):
+class LogisticRegression(ClassifierBase, BaseEstimator):
     r""" Multi-class Logistic Regression.
 
     Logistic regression is a probabilistic, linear classifier. It is
@@ -341,7 +355,7 @@ class LogisticRegression(BaseLayer, BaseEstimator):
         """
         # Initialize BaseLayer
         shape = [n_in, n_out]    # For refactoring purposes
-        super().__init__(shape, 'int', *args, **kwargs)
+        super().__init__(shape, *args, **kwargs)
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
 
@@ -400,7 +414,13 @@ class MultiLayerRegression(MultiLayerBase, BaseEstimator):
     """
 
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        super().__init__(n_in, n_hidden, n_out, LinearRegression,
+        if isinstance(n_hidden, int):
+            shape = [n_in, n_hidden, n_out]
+        else:
+            shape = [n_in]
+            shape.extend(n_hidden)
+            shape.append(n_out)
+        super().__init__(shape, LinearRegression,
                          relu, *args, **kwargs)
 
 
@@ -455,7 +475,13 @@ class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
             LogisticRegression.
     """
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        super().__init__(n_in, n_hidden, n_out, LogisticRegression,
+        if isinstance(n_hidden, int):
+            shape = [n_in, n_hidden, n_out]
+        else:
+            shape = [n_in]
+            shape.extend(n_hidden)
+            shape.append(n_out)
+        super().__init__(shape, LogisticRegression,
                          T.tanh, *args, **kwargs)
 
 

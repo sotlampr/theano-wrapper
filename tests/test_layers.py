@@ -158,19 +158,19 @@ class TestHiddenLayer(unittest.TestCase):
 class TestMultiLayerBase(unittest.TestCase):
     """ Tests for MultiLayerBase class """
     def test_multi_layer_base_has_params(self):
-        base = MultiLayerBase(100, 50, 10, SimpleClf)
+        base = MultiLayerBase([100, 50, 10], SimpleClf)
         self.assertTrue(hasattr(base, 'params'),
                         msg="Class has no attribute 'parameters'")
 
     def test_multi_layer_base_params_not_empty(self):
-        base = MultiLayerBase(100, 50, 10, SimpleClf)
+        base = MultiLayerBase([100, 50, 10], SimpleClf)
         self.assertTrue(base.params, msg="Class 'parameters' are empty")
 
     def test_multi_layer_base_no_args(self):
         # Test if MultiLayerBase initializes as expected when given no
         # extra arguements
         try:
-            MultiLayerBase(100, 50, 10, SimpleClf)
+            MultiLayerBase([100, 50, 10], SimpleClf)
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
@@ -178,7 +178,7 @@ class TestMultiLayerBase(unittest.TestCase):
         # Test if MultiLayerBase initializes as expected when given no
         # extra arguements
         try:
-            MultiLayerBase(100, 50, 10, SimpleClf)
+            MultiLayerBase([100, 50, 10], SimpleClf)
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
@@ -186,7 +186,7 @@ class TestMultiLayerBase(unittest.TestCase):
         # Test if MultiLayerBase initializes as expected when given no
         # extra arguements
         try:
-            MultiLayerBase(100, [100, 30, 50], 10, SimpleClf, lambda x: x)
+            MultiLayerBase([100, 100, 30, 50, 10], SimpleClf, lambda x: x)
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
 
@@ -194,7 +194,7 @@ class TestMultiLayerBase(unittest.TestCase):
         # Test if MultiLayerBase initializes as expected when given no
         # extra arguements
         try:
-            MultiLayerBase(100, [100, 30, 50], 10, SimpleClf,
+            MultiLayerBase([100, 100, 30, 50, 10], SimpleClf,
                            [lambda x: x for i in range(3)])
         except Exception as e:
             self.fail("Class initialization failed: %s" % str(e))
