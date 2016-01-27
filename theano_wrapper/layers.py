@@ -139,6 +139,34 @@ class MultiLayerBase(RandomBase):
         self.params = [p for l in self.layers for p in l.params]
 
 
+class MultiLayerBaseCopy(RandomBase):
+    """ A Multi layer network
+
+    Attrs:
+        n_in (int): number of input nodes
+        n_hidden (int or list(int)): if int: a single layer network of n_hidden
+            nodes. If list: a multi layer network consisting of
+            m = len(n_hidden) layers and nodes for each layer given
+            by n_hidden[m]
+        n_out (int): number of output layers
+        out_layer (estimator class): type of the final layer
+        activation (function or list of functions): In accordance with
+            n_hidden. If network is single layer must be a function, if multi
+            layer can be either a function or a list of functions.
+    """
+    def __init__(self, shape, out_layer, activation=None, random=None):
+        super().__init__(random)
+        self.layers = make_layers(shape, activation, random)
+        self.layers.append(out_layer(shape[-2:],
+                                     X=self.layers[-1].output))
+
+        self.X = self.layers[0].X
+        self.y = self.layers[-1].y
+        self.cost = self.layers[-1].cost
+        self.output = self.layers[-1].output
+        self.params = [p for l in self.layers for p in l.params]
+
+
 def make_layers(shape, activation=None, random=None, corrupt=None):
     layers = []
     if len(shape) == 2:
@@ -294,9 +322,8 @@ class LinearRegression(RegressorBase, BaseEstimator):
         predict (theano expression): Predict target value for input X.
         cost (theano expression): Mean squared error loss function.
     """
-    def __init__(self, n_in, n_out, *args, **kwargs):
+    def __init__(self, shape, *args, **kwargs):
         # Initialize BaseLayer and theano symbolic functions
-        shape = [n_in, n_out]    # For refactoring purposes
         super().__init__(shape, *args, **kwargs)
         self.output = T.dot(self.X, self.W) + self.b
         self.cost = T.sum(T.pow(self.output-self.y, 2)) / (2*self.X.shape[0])
@@ -349,7 +376,7 @@ class LogisticRegression(ClassifierBase, BaseEstimator):
                   - \mathcal{L} (\theta=\{W,b\}, \mathcal{D})
         probas (theano expression): Calculate probabilities for input X.
     """
-    def __init__(self, n_in, n_out, *args, **kwargs):
+    def __init__(self, shape, *args, **kwargs):
         """ Initialize BaseLayer and the following theano symbolic
         functions:
             probas: Class propabilities
@@ -358,7 +385,6 @@ class LogisticRegression(ClassifierBase, BaseEstimator):
             erros: Return count of errors
         """
         # Initialize BaseLayer
-        shape = [n_in, n_out]    # For refactoring purposes
         super().__init__(shape, *args, **kwargs)
         # symbolic expression for computing the matrix of probabilities
         self.probas = T.nnet.softmax(T.dot(self.X, self.W) + self.b)
@@ -370,7 +396,7 @@ class LogisticRegression(ClassifierBase, BaseEstimator):
             T.log(self.probas)[T.arange(self.y.shape[0]), self.y])
 
 
-class MultiLayerRegression(MultiLayerBase, BaseEstimator):
+class MultiLayerRegression(MultiLayerBaseCopy, BaseEstimator):
     r""" Multilayer Regression.
 
     An MLP can be viewed as a linear regression predictor where the input
@@ -416,14 +442,13 @@ class MultiLayerRegression(MultiLayerBase, BaseEstimator):
         cost (theano expression): Negative log-likelihood from
             LogisticRegression.
     """
-
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
         shape = dirty_helper(n_in, n_hidden, n_out)
         super().__init__(shape, LinearRegression,
                          relu, *args, **kwargs)
 
 
-class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
+class MultiLayerPerceptron(MultiLayerBaseCopy, BaseEstimator):
     r""" Multilayer Perceptron.
 
     An MLR can be viewed as a logistic regression classifier where the input

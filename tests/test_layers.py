@@ -311,9 +311,12 @@ class ClassificationTest(EstimatorTests):
 class RegressionTest(EstimatorTests):
     y = np.random.random((500,)).astype(np.float32)
 
-    def test_estimator_fit_multivariate(self):
+    def test_regression_fit_multivariate(self):
         args = list(self.args)
-        args[-1] = 5
+        if len(args) == 1:
+            args[0][-1] = 5
+        else:
+            args[-1] = 5
         y = np.random.random((500, 5)).astype(np.float32)
         trn = SimpleTrainer(self.estimator(*args))
         try:
@@ -324,12 +327,12 @@ class RegressionTest(EstimatorTests):
 
 class TestLinearRegression(unittest.TestCase, RegressionTest):
     estimator = LinearRegression
-    args = (100, 1)
+    args = ([100, 1],)
 
 
 class TestLogisticRegression(unittest.TestCase, ClassificationTest):
     estimator = LogisticRegression
-    args = (100, 10)
+    args = ([100, 10],)
 
 
 class TestMultiLayerPerceptron(unittest.TestCase,

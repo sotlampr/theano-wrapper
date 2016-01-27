@@ -245,7 +245,7 @@ def epoch_logreg(__test):
     X_train, X_test, y_train, y_test = data
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = LogisticRegression(n_in, n_out)
+    clf = LogisticRegression([n_in, n_out])
     trainer = EpochTrainer(clf, alpha=0.004, patience=12000, max_iter=max_iter,
                            imp_thresh=0.986, random=RANDOM_STATE, verbose=10)
     begin = time.time()
@@ -267,7 +267,7 @@ def sgd_logreg(__test):
     X_train, X_test, y_train, y_test = data
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = LogisticRegression(n_in, n_out)
+    clf = LogisticRegression([n_in, n_out])
     trainer = SGDTrainer(clf, batch_size=2, alpha=0.03, patience=10000,
                          max_iter=max_iter, imp_thresh=0.999,
                          random=RANDOM_STATE, verbose=3)
@@ -289,7 +289,7 @@ def mnist_epoch_logreg(__test):
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = LogisticRegression(n_in, n_out)
+    clf = LogisticRegression([n_in, n_out])
     trainer = EpochTrainer(clf, alpha=0.9, patience=50, max_iter=max_iter,
                            imp_thresh=0.95, random=RANDOM_STATE, verbose=1)
     begin = time.time()
@@ -311,7 +311,7 @@ def mnist_sgd_logreg(__test):
     X_train, X_test, y_train, y_test = load_mnist_data()
     n_in = X_test.shape[1]
     n_out = len(np.unique(y_train))
-    clf = LogisticRegression(n_in, n_out)
+    clf = LogisticRegression([n_in, n_out])
     trainer = SGDTrainer(clf, batch_size=100, alpha=0.5, patience=1000,
                          max_iter=max_iter,
                          imp_thresh=0.99, random=RANDOM_STATE, verbose=3)
@@ -354,7 +354,7 @@ def epoch_linear(__test):
     max_iter = 1 if __test else 100000
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
-    clf = LinearRegression(n_in, 1)
+    clf = LinearRegression([n_in, 1])
     trainer = EpochTrainer(clf, alpha=0.1, patience=500, max_iter=max_iter,
                            imp_thresh=1, random=RANDOM_STATE, verbose=10)
     begin = time.time()
@@ -375,7 +375,7 @@ def sgd_linear(__test):
     max_iter = 1 if __test else 100000
     X_train, X_test, y_train, y_test = load_boston_data()
     n_in = X_test.shape[1]
-    clf = LinearRegression(n_in, 1)
+    clf = LinearRegression([n_in, 1])
     trainer = SGDTrainer(clf, batch_size=10, alpha=0.08, patience=200,
                          imp_thresh=0.999999, max_iter=max_iter,
                          random=RANDOM_STATE, verbose=10)
@@ -399,7 +399,7 @@ def linnerud_linear_sgd(__test):
     X_train, X_test, y_train, y_test = load_linnerud_data()
     n_in = X_test.shape[1]
     n_out = y_test.shape[1]
-    clf = LinearRegression(n_in, n_out)
+    clf = LinearRegression([n_in, n_out])
     trainer = SGDTrainer(clf, batch_size=3, alpha=0.0005, patience=100,
                          imp_thresh=1, max_iter=max_iter,
                          random=RANDOM_STATE, verbose=3)
