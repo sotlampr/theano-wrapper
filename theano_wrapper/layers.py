@@ -128,30 +128,7 @@ class MultiLayerBase(RandomBase):
     """
     def __init__(self, shape, out_layer, activation=None, random=None):
         super().__init__(random)
-        self.layers = []
-        if len(shape) == 2:
-            # This is a single-layer network
-            if activation is not None:
-                raise TypeError("Cannot initialize single-layer network with "
-                                "some kind of activation.")
-
-        elif len(shape) == 3:
-            # Network with a single hidden layer
-            if isinstance(activation, list):
-                raise TypeError("Cannot initialize single hidden layer "
-                                "network with multiple activations.")
-            self.layers.append(HiddenLayer(shape[:2], activation, self._rng))
-
-        elif len(shape) >= 4:
-            if not isinstance(activation, list):
-                activations = [activation for i in range(len(shape)-2)]
-            else:
-                activations = activation
-            for i in range(len(shape) - 2):
-                X = None if i == 0 else self.layers[i-1].output
-                self.layers.append(HiddenLayer(shape[i:i+2], activations[i],
-                                               self._rng, X=X))
-
+        self.layers = make_layers(shape, activation, random)
         self.layers.append(out_layer(*shape[-2:],
                                      X=self.layers[-1].output))
 
@@ -160,6 +137,34 @@ class MultiLayerBase(RandomBase):
         self.cost = self.layers[-1].cost
         self.output = self.layers[-1].output
         self.params = [p for l in self.layers for p in l.params]
+
+
+def make_layers(shape, activation=None, random=None, corrupt=None):
+    layers = []
+    if len(shape) == 2:
+        # This is a single-layer network
+        if activation is not None:
+            raise TypeError("Cannot initialize single-layer network with "
+                            "some kind of activation.")
+
+    elif len(shape) == 3:
+        # Network with a single hidden layer
+        if isinstance(activation, list):
+            raise TypeError("Cannot initialize single hidden layer "
+                            "network with multiple activations.")
+        layers.append(HiddenLayer(shape[:2], activation, random,
+                                  corrupt=corrupt))
+
+    elif len(shape) >= 4:
+        if not isinstance(activation, list):
+            activations = [activation for i in range(len(shape)-2)]
+        else:
+            activations = activation
+        for i in range(len(shape) - 2):
+            X = None if i == 0 else layers[i-1].output
+            layers.append(HiddenLayer(shape[i:i+2], activations[i],
+                                      random, X=X, corrupt=corrupt))
+    return layers
 
 
 class BaseEstimator:
@@ -235,6 +240,19 @@ class BaseTransformer:
 def relu(value):
     """ Rectified linear unit activation function """
     return theano.tensor.switch(value < 0, 0, value)
+
+
+def dirty_helper(n_in, n_hidden, n_out=None):
+    if isinstance(n_hidden, int):
+        shape = [n_in, n_hidden]
+    elif isinstance(n_hidden, float):
+        shape = [n_in, n_in*n_hidden]
+    else:
+        shape = [n_in]
+        shape.extend(n_hidden)
+    if n_out:
+        shape.append(n_out)
+    return shape
 
 
 # ESTIMATOR LAYERS ###########################################################
@@ -400,12 +418,7 @@ class MultiLayerRegression(MultiLayerBase, BaseEstimator):
     """
 
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        if isinstance(n_hidden, int):
-            shape = [n_in, n_hidden, n_out]
-        else:
-            shape = [n_in]
-            shape.extend(n_hidden)
-            shape.append(n_out)
+        shape = dirty_helper(n_in, n_hidden, n_out)
         super().__init__(shape, LinearRegression,
                          relu, *args, **kwargs)
 
@@ -461,12 +474,7 @@ class MultiLayerPerceptron(MultiLayerBase, BaseEstimator):
             LogisticRegression.
     """
     def __init__(self, n_in, n_hidden, n_out, *args, **kwargs):
-        if isinstance(n_hidden, int):
-            shape = [n_in, n_hidden, n_out]
-        else:
-            shape = [n_in]
-            shape.extend(n_hidden)
-            shape.append(n_out)
+        shape = dirty_helper(n_in, n_hidden, n_out)
         super().__init__(shape, LogisticRegression,
                          T.tanh, *args, **kwargs)
 
@@ -477,14 +485,16 @@ class TiedAutoEncoder(RandomBase, BaseTransformer):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
 
+        shape = [n_in, n_hidden]
+
         self.layers = []
 
         if isinstance(n_hidden, float):
             n_hidden = int(n_in * n_hidden)
-        self.layers.append(HiddenLayer([n_in, n_hidden],
+        self.layers.append(HiddenLayer(shape,
                                        activation, self._rng))
 
-        self.layers.append(HiddenLayer([n_hidden, n_in], activation, self._rng,
+        self.layers.append(HiddenLayer(shape[::-1], activation, self._rng,
                                        X=self.layers[0].output))
         self.layers[1].W = self.layers[0].W.T
         self.params = [self.layers[0].W, self.layers[0].b, self.layers[1].b]
@@ -503,36 +513,12 @@ class AutoEncoder(RandomBase, BaseTransformer):
                  corrupt=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         activation = T.nnet.sigmoid if activation is None else activation
-
-        self.layers = []
-        if isinstance(n_hidden, int) or isinstance(n_hidden, float):
-            if isinstance(n_hidden, float):
-                n_hidden = int(n_in * n_hidden)
-            if not isinstance(activation, list):
-                activation = [activation, activation]
-            n_prev = n_hidden
-            if corrupt:
-                self.layers.append(HiddenLayer([n_in, n_hidden], activation[0],
-                                               self._rng, corrupt=0.3))
-            else:
-                self.layers.append(HiddenLayer([n_in, n_hidden],
-                                               activation[0], self._rng))
-        elif isinstance(n_hidden, list):
-            if not isinstance(activation, list):
-                temp = activation
-                activation = [temp for i in range(len(n_hidden)+1)]
-            self.layers.append(HiddenLayer([n_in, n_hidden[0]],
-                                           activation[0], self._rng))
-            n_prev = n_hidden[0]
-            for i, n_layer in enumerate(n_hidden):
-                if i == 0:
-                    continue
-                self.layers.append(HiddenLayer([n_prev, n_layer],
-                                               activation[i], self._rng,
-                                               X=self.layers[i-1].output))
-                n_prev = n_layer
-
-        self.layers.append(HiddenLayer([n_prev, n_in], activation[-1],
+        shape = dirty_helper(n_in, n_hidden)
+        shape.append(shape[0])
+        self.layers = make_layers(shape, activation, self._rng, corrupt)
+        if isinstance(activation, list):
+            activation = activation[-1]
+        self.layers.append(HiddenLayer(shape[-2:], activation,
                                        X=self.layers[-1].output))
 
         self.params = [p for l in self.layers for p in l.params]
