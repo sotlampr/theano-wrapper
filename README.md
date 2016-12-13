@@ -1,11 +1,6 @@
 [![Build Status](https://travis-ci.org/sotlampr/theano-wrapper.svg?branch=master)](https://travis-ci.org/sotlampr/theano-wrapper)
 [![Coverage Status](https://coveralls.io/repos/sotlampr/theano-wrapper/badge.svg?branch=master&service=github)](https://coveralls.io/github/sotlampr/theano-wrapper?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/theano-wrapper/badge/?version=latest)](http://theano-wrapper.readthedocs.org/en/latest/?badge=latest)
-
-Project no longer developed, I am switching to [tensorflow](https://github.com/tensorflow/tensorflow)
-
----
-
 # theano-wrapper
 *Neural network library based on theano*
 

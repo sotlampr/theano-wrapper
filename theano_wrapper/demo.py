@@ -17,7 +17,7 @@ import sys
 import numpy as np
 from sklearn.datasets import (fetch_mldata, load_boston, load_iris,
                               load_linnerud)
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import classification_report, mean_squared_error
 import theano
